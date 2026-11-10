@@ -44,10 +44,17 @@ def send_email(to, subject, html, text=None, *, auth_only=False, support_reply=F
         host = os.environ.get('SMTP_HOST', 'smtp.gmail.com')
         port = int(os.environ.get('SMTP_PORT', '587'))
         try:
-            with smtplib.SMTP(host, port, timeout=20) as server:
+            if port == 465:
+                connection = smtplib.SMTP_SSL(
+                    host, port, timeout=20, context=ssl.create_default_context()
+                )
+            else:
+                connection = smtplib.SMTP(host, port, timeout=20)
+            with connection as server:
                 server.ehlo()
-                server.starttls(context=ssl.create_default_context())
-                server.ehlo()
+                if port != 465:
+                    server.starttls(context=ssl.create_default_context())
+                    server.ehlo()
                 server.login(username, password)
                 server.send_message(message)
             return {'provider': 'gmail-smtp', 'accepted': True}
