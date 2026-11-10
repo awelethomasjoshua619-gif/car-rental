@@ -1,0 +1,132 @@
+{% extends "admin/base_admin.html" %}
+
+{% block page_title %}Manage Customer Bookings{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h5 class="text-white mb-0"><i class="fa-solid fa-calendar-check text-primary me-2"></i> All Rental Reservations ({{ bookings|length }})</h5>
+            <span class="text-white-50 small">Review incoming rental requests, verify dates, and update reservation status.</span>
+        </div>
+
+        <!-- Filter Pills -->
+        <div class="btn-group" role="group">
+            <a href="{{ url_for('admin_bookings', status='all') }}" class="btn btn-sm {% if current_filter == 'all' %}btn-primary{% else %}btn-outline-secondary text-white-50{% endif %}">All</a>
+            <a href="{{ url_for('admin_bookings', status='pending') }}" class="btn btn-sm {% if current_filter == 'pending' %}btn-primary{% else %}btn-outline-secondary text-white-50{% endif %}">Pending</a>
+            <a href="{{ url_for('admin_bookings', status='confirmed') }}" class="btn btn-sm {% if current_filter == 'confirmed' %}btn-primary{% else %}btn-outline-secondary text-white-50{% endif %}">Confirmed</a>
+            <a href="{{ url_for('admin_bookings', status='cancelled') }}" class="btn btn-sm {% if current_filter == 'cancelled' %}btn-primary{% else %}btn-outline-secondary text-white-50{% endif %}">Cancelled</a>
+        </div>
+    </div>
+
+    {% if bookings %}
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Booking Ref</th>
+                        <th>Customer Details</th>
+                        <th>Reserved Vehicle</th>
+                        <th>Rental Period</th>
+                        <th>Total Cost</th>
+                        <th>Status</th>
+                        <th class="text-end">Manage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in bookings %}
+                        <tr>
+                            <td>
+                                <strong class="text-primary d-block">#{{ b.booking_number }}</strong>
+                                <span class="text-white-50 small">{{ b.created_at[:10] }}</span>
+                            </td>
+                            <td>
+                                <strong class="text-white d-block">{{ b.user_name }}</strong>
+                                <div class="text-white-50 small"><i class="fa-solid fa-envelope me-1"></i> {{ b.user_email }}</div>
+                                <div class="text-white-50 small"><i class="fa-solid fa-phone me-1"></i> {{ b.user_phone or 'No phone' }}</div>
+                            </td>
+                            <td>
+                                <strong class="text-white d-block">{{ b.vehicle_title }}</strong>
+                                <span class="badge bg-secondary small">{{ b.brand_name }}</span>
+                                {% if b.driver_needed %}
+                                    <span class="badge bg-info text-dark small"><i class="fa-solid fa-user-tie"></i> Chauffeur</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="small text-white"><strong>From:</strong> {{ b.from_date }}</div>
+                                <div class="small text-white"><strong>To:</strong> {{ b.to_date }}</div>
+                                <span class="text-white-50 small">Duration: {{ b.total_days }} day(s)</span>
+                            </td>
+                            <td>
+                                <strong class="text-white fs-6">${{ "%.2f"|format(b.total_price) }}</strong>
+                            </td>
+                            <td>
+                                {% if b.status == 'Confirmed' %}
+                                    <span class="badge badge-confirmed">Confirmed</span>
+                                {% elif b.status == 'Cancelled' %}
+                                    <span class="badge badge-cancelled">Cancelled</span>
+                                {% else %}
+                                    <span class="badge badge-pending">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#bookingModal{{ b.id }}">
+                                    <i class="fa-solid fa-pen-to-square me-1"></i> Update
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Manage Booking Modal -->
+                        <div class="modal fade" id="bookingModal{{ b.id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content bg-card border-secondary border-opacity-50 text-white">
+                                    <div class="modal-header border-secondary border-opacity-25">
+                                        <h5 class="modal-title">Booking #{{ b.booking_number }}</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <form action="{{ url_for('admin_booking_status', booking_id=b.id) }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <div class="modal-body p-4">
+                                            <div class="p-3 bg-dark bg-opacity-50 rounded mb-3 small">
+                                                <div class="mb-1"><strong>Customer:</strong> {{ b.user_name }} ({{ b.user_email }})</div>
+                                                <div class="mb-1"><strong>Vehicle:</strong> {{ b.vehicle_title }}</div>
+                                                <div class="mb-1"><strong>Dates:</strong> {{ b.from_date }} to {{ b.to_date }} ({{ b.total_days }} days)</div>
+                                                <div class="mb-1"><strong>Pick-up:</strong> {{ b.pickup_location }}</div>
+                                                <div class="mb-1"><strong>Drop-off:</strong> {{ b.dropoff_location }}</div>
+                                                <div class="mb-1"><strong>Driver Requested:</strong> {{ 'Yes' if b.driver_needed else 'No' }}</div>
+                                                {% if b.message %}
+                                                    <div class="mt-2 text-warning"><strong>Customer Note:</strong> {{ b.message }}</div>
+                                                {% endif %}
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label text-white-50 small">Update Reservation Status</label>
+                                                <select name="status" class="form-select" required>
+                                                    <option value="Confirmed" {% if b.status == 'Confirmed' %}selected{% endif %}>Confirmed (Approve Rental)</option>
+                                                    <option value="Pending" {% if b.status == 'Pending' %}selected{% endif %}>Pending (Awaiting Verification)</option>
+                                                    <option value="Cancelled" {% if b.status == 'Cancelled' %}selected{% endif %}>Cancelled (Decline/Reject)</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label text-white-50 small">Administrator Remark / Note</label>
+                                                <textarea name="admin_remark" class="form-control" rows="2" placeholder="e.g. Vehicle prepared and ready for pick-up at LAX terminal 4.">{{ b.admin_remark or '' }}</textarea>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer border-secondary border-opacity-25">
+                                            <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Close</button>
+                                            <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold">Save Status</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-white-50 text-center py-5 mb-0">No bookings match the selected criteria.</p>
+    {% endif %}
+</div>
+{% endblock %}

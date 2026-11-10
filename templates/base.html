@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}FAST CARS - Rent the Right Car{% endblock %}</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@700;800;900&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20261108-light">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Main Navigation Bar (Exact PDF Design) -->
+    <nav class="navbar navbar-expand-lg sticky-top">
+        <div class="container-fluid px-lg-5">
+            <!-- Brand Logo -->
+            <a class="navbar-brand text-white fw-900 tracking-tight" href="{{ url_for('index') }}">
+                FAST CARS
+            </a>
+
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
+                <i class="fa-solid fa-bars text-white fs-4"></i>
+            </button>
+
+            <div class="collapse navbar-collapse" id="mainNav">
+                <!-- Nav Links matching PDF: Our cars | Browse by size | How it works | Contact -->
+                <ul class="navbar-nav mx-auto mb-2 mb-lg-0 align-items-lg-center gap-lg-4">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'cars' and not request.args.get('category') %}active{% endif %}" href="{{ url_for('cars') }}">Our cars</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}#pick-your-size">Browse by size</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}#how-it-works">How it works</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'contact' %}active{% endif %}" href="{{ url_for('contact') }}">Contact</a>
+                    </li>
+                </ul>
+
+                <!-- Auth Buttons matching PDF: Log in | Register (Yellow) -->
+                <div class="d-flex align-items-center gap-3">
+                    {% if current_admin %}
+                        <a href="{{ url_for('admin_dashboard') }}" class="badge bg-secondary text-white text-decoration-none px-3 py-2 border border-secondary">
+                            <i class="fa-solid fa-gauge me-1"></i> Admin Portal
+                        </a>
+                    {% endif %}
+
+                    {% if current_user %}
+                        <div class="dropdown">
+                            <a class="btn btn-outline-light btn-sm dropdown-toggle px-3 py-2 text-white fw-semibold" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fa-solid fa-user me-1"></i> {{ current_user.full_name.split(' ')[0] }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end shadow">
+                                <li><h6 class="dropdown-header text-white-50">{{ current_user.email }}</h6></li>
+                                <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="fa-solid fa-id-card me-2"></i> My Profile</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('my_bookings') }}"><i class="fa-solid fa-clock-rotate-left me-2"></i> Booking History</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('testimonials') }}"><i class="fa-solid fa-star me-2"></i> Post Testimonial</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><form action="{{ url_for('logout') }}" method="POST" class="m-0">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="dropdown-item text-danger"><i class="fa-solid fa-arrow-right-from-bracket me-2"></i> Sign Out</button>
+                                </form></li>
+                            </ul>
+                        </div>
+                    {% else %}
+                        <a href="{{ url_for('login') }}" class="text-white text-decoration-none fw-semibold me-2">
+                            Log in
+                        </a>
+                        <a href="{{ url_for('register') }}" class="btn btn-yellow fw-bold px-4 py-2">
+                            Register
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages Container -->
+    <div class="container mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Body Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer Bar matching PDF Page 3 -->
+    <footer class="footer-bottom-bar py-4 bg-black border-top border-secondary border-opacity-25 text-white">
+        <div class="container-fluid px-lg-5 d-flex flex-wrap justify-content-between align-items-center">
+            <div class="fw-bold fs-5 tracking-tight">
+                FAST CARS
+            </div>
+            <div class="small text-white-50">
+                &copy; Fast Cars. All rights reserved. &bull; 
+                <a href="{{ url_for('terms') }}" class="text-white-50 text-decoration-none ms-2 me-2">Terms</a> &bull; 
+                <a href="{{ url_for('privacy') }}" class="text-white-50 text-decoration-none ms-2 me-2">Privacy</a> &bull; 
+                <a href="{{ url_for('admin_login') }}" class="text-white-50 text-decoration-none ms-2">Admin</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Main JS -->
+    <script src="{{ url_for('static', filename='js/main.js') }}?v=20261108-car-gallery"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

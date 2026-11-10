@@ -1,0 +1,121 @@
+{% extends "admin/base_admin.html" %}
+
+{% block page_title %}Manage Contact Inquiries{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h5 class="text-white mb-0"><i class="fa-solid fa-inbox text-primary me-2"></i> Contact Us Inquiries ({{ queries|length }})</h5>
+            <span class="text-white-50 small">Manage customer messages, corporate inquiries, and support requests.</span>
+        </div>
+    </div>
+
+    {% if queries %}
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Sender Details</th>
+                        <th>Subject</th>
+                        <th>Message</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th class="text-end">Manage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for q in queries %}
+                        <tr>
+                            <td>
+                                <strong class="text-white d-block">{{ q.name }}</strong>
+                                <div class="text-white-50 small"><i class="fa-solid fa-envelope me-1"></i> {{ q.email }}</div>
+                                <div class="text-white-50 small"><i class="fa-solid fa-phone me-1"></i> {{ q.phone or 'No phone' }}</div>
+                            </td>
+                            <td><strong class="text-white">{{ q.subject or 'General Inquiry' }}</strong></td>
+                            <td style="max-width: 320px;">
+                                <p class="text-white-50 small mb-1">{{ q.message }}</p>
+                                {% if q.admin_note %}
+                                    <span class="badge bg-info bg-opacity-10 text-info">Note: {{ q.admin_note }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-white-50 small">{{ q.created_at[:10] }}</td>
+                            <td>
+                                {% if q.status == 'New' %}
+                                    <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25">New</span>
+                                {% elif q.status == 'Replied' %}
+                                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25">Replied</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Read</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <div class="d-inline-flex gap-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#queryModal{{ q.id }}">
+                                        <i class="fa-solid fa-reply me-1"></i> Reply
+                                    </button>
+                                    <form action="{{ url_for('admin_contact_delete', query_id=q.id) }}" method="POST" onsubmit="return confirm('Delete this inquiry?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-2">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Modal for Status & Note -->
+                        <div class="modal fade" id="queryModal{{ q.id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content bg-card border-secondary border-opacity-50 text-white">
+                                    <div class="modal-header border-secondary border-opacity-25">
+                                        <h5 class="modal-title">Inquiry from {{ q.name }}</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <form action="{{ url_for('admin_contact_status', query_id=q.id) }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <div class="modal-body p-4">
+                                            <div class="p-3 bg-dark bg-opacity-50 rounded mb-3 small">
+                                                <div><strong>Email:</strong> <a href="mailto:{{ q.email }}" class="text-primary">{{ q.email }}</a></div>
+                                                <div><strong>Phone:</strong> {{ q.phone or 'N/A' }}</div>
+                                                <div><strong>Subject:</strong> {{ q.subject }}</div>
+                                                <div class="mt-2 text-white"><strong>Message:</strong><br>{{ q.message }}</div>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label text-white-50 small">Reply to Customer</label>
+                                                <textarea name="reply_message" class="form-control" rows="3" placeholder="Write a reply. It will be sent to the customer's email when status is Replied."></textarea>
+                                                <div class="form-text text-white-50">When you select Replied, this message is sent through the configured email service. In local mode, it appears in the terminal.</div>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label text-white-50 small">Update Inquiry Status</label>
+                                                <select name="status" class="form-select">
+                                                    <option value="Replied" {% if q.status == 'Replied' %}selected{% endif %}>Replied</option>
+                                                    <option value="Read" {% if q.status == 'Read' %}selected{% endif %}>Mark as Read</option>
+                                                    <option value="New" {% if q.status == 'New' %}selected{% endif %}>Keep as New</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label text-white-50 small">Internal Follow-up Note</label>
+                                                <textarea name="admin_note" class="form-control" rows="2" placeholder="e.g. Sent corporate fleet quotation via email.">{{ q.admin_note or '' }}</textarea>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer border-secondary border-opacity-25">
+                                            <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Close</button>
+                                            <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold">Save Status</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-white-50 text-center py-5 mb-0">No contact inquiries found.</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "admin/base_admin.html" %}
+
+{% block page_title %}Manage Registered Users{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h5 class="text-white mb-0"><i class="fa-solid fa-users text-primary me-2"></i> Registered Customer Accounts ({{ users|length }})</h5>
+            <span class="text-white-50 small">View customer profiles, registration dates, contact details, and total booking frequency.</span>
+        </div>
+    </div>
+
+    {% if users %}
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Customer</th>
+                        <th>Contact Info</th>
+                        <th>Location</th>
+                        <th>Bookings Made</th>
+                        <th>Joined Date</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                        <tr>
+                            <td>{{ u.id }}</td>
+                            <td>
+                                <strong class="text-white d-block">{{ u.full_name }}</strong>
+                                <span class="text-white-50 small">{{ u.email }}</span>
+                            </td>
+                            <td>
+                                <div class="text-white-50 small"><i class="fa-solid fa-phone me-1"></i> {{ u.phone or 'Not provided' }}</div>
+                            </td>
+                            <td>
+                                <span class="text-white-50 small">{{ u.city or '-' }}, {{ u.country or '-' }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25 px-2 py-1">
+                                    {{ u.booking_count }} reservation(s)
+                                </span>
+                            </td>
+                            <td class="text-white-50 small">{{ u.created_at[:10] }}</td>
+                            <td class="text-end">
+                                <form action="{{ url_for('admin_user_delete', user_id=u.id) }}" method="POST" onsubmit="return confirm('Delete customer account: {{ u.full_name }}? All associated bookings and reviews will also be removed.');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                                        <i class="fa-solid fa-user-xmark me-1"></i> Remove
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-white-50 text-center py-5 mb-0">No registered customers found.</p>
+    {% endif %}
+</div>
+{% endblock %}

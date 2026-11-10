@@ -1,0 +1,386 @@
+import os
+import sqlite3
+from datetime import datetime, date, timedelta
+from werkzeug.security import check_password_hash, generate_password_hash
+
+DB_PATH = os.environ.get(
+    'DATABASE_PATH',
+    os.path.join(os.path.dirname(__file__), 'fastcars.db')
+)
+SCHEMA_PATH = os.path.join(os.path.dirname(__file__), 'schema.sql')
+
+def get_db():
+    """Returns a database connection with dictionary-like row access."""
+    try:
+        from flask import has_app_context, g
+        if has_app_context():
+            if 'db' not in g:
+                os.makedirs(os.path.dirname(os.path.abspath(DB_PATH)), exist_ok=True)
+                conn = sqlite3.connect(DB_PATH, timeout=30)
+                conn.row_factory = sqlite3.Row
+                conn.execute("PRAGMA foreign_keys = ON")
+                conn.execute("PRAGMA busy_timeout = 30000")
+                g.db = conn
+            return g.db
+    except ImportError:
+        pass
+
+    os.makedirs(os.path.dirname(os.path.abspath(DB_PATH)), exist_ok=True)
+    conn = sqlite3.connect(DB_PATH, timeout=30)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA busy_timeout = 30000")
+    return conn
+
+def init_db():
+    """Initializes the database using schema.sql and populates initial seed data."""
+    conn = get_db()
+    with open(SCHEMA_PATH, 'r', encoding='utf-8') as f:
+        conn.executescript(f.read())
+    conn.commit()
+    user_columns = {col[1] for col in conn.execute('PRAGMA table_info(users)').fetchall()}
+    if 'email_verified' not in user_columns:
+        conn.execute('ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 1')
+        conn.commit()
+    # Ensure any new columns exist in vehicles table
+    cur = conn.cursor()
+    cur.execute("PRAGMA table_info(vehicles)")
+    columns = [col[1] for col in cur.fetchall()]
+    for col_name in ['category', 'image_side', 'image_rear', 'image_interior']:
+        if col_name not in columns:
+            cur.execute(f"ALTER TABLE vehicles ADD COLUMN {col_name} TEXT")
+    # Recovery now uses short-lived email links, so legacy security answers are obsolete.
+    conn.execute("UPDATE users SET security_question = '', security_answer = ''")
+    # This seed photo was incorrectly mapped as the Porsche's interior; do not present
+    # another exterior angle as a real interior. Keep the front/side/rear views intact.
+    conn.execute(
+        "UPDATE vehicles SET image_interior = NULL "
+        "WHERE id = 5 AND image_interior = '/static/images/cars/car_5_interior.jpg'"
+    )
+    # The current front/side/rear source set is catalogued as a 992 Carrera S,
+    # photographed in 2021, rather than the seeded 2024 Carrera GTS.
+    conn.execute(
+        "UPDATE vehicles SET title = 'Porsche 911 Carrera S (992)', model_year = 2021 "
+        "WHERE id = 5 AND title = 'Porsche 911 Carrera GTS' "
+        "AND image_url = '/static/images/cars/car_5_front.jpg'"
+    )
+    conn.commit()
+    if os.environ.get('APP_ENV', 'development').lower() != 'production':
+        seed_data(conn)
+    else:
+        default_admin = conn.execute(
+            "SELECT password_hash FROM admins WHERE username = 'admin' OR email = 'awelethomasjoshua619@gmail.com' LIMIT 1"
+        ).fetchone()
+        default_user = conn.execute(
+            "SELECT password_hash FROM users WHERE email = 'john@example.com' LIMIT 1"
+        ).fetchone()
+        has_demo_password = (
+            (default_admin and check_password_hash(default_admin['password_hash'], 'admin123'))
+            or (default_user and check_password_hash(default_user['password_hash'], 'user123'))
+        )
+        if has_demo_password:
+            conn.close()
+            raise RuntimeError(
+                'Production database contains a demo password. Use a fresh database and create a production admin.'
+            )
+    conn.close()
+
+def seed_data(conn):
+    """Inserts initial demo data if tables are empty."""
+    cursor = conn.cursor()
+
+    # 1. Admin Seed
+    cursor.execute("SELECT COUNT(*) FROM admins")
+    if cursor.fetchone()[0] == 0:
+        cursor.execute(
+            """INSERT INTO admins (username, email, password_hash, full_name)
+               VALUES (?, ?, ?, ?)""",
+            ('admin', 'awelethomasjoshua619@gmail.com', generate_password_hash('admin123'), 'FAST CARS Administrator')
+        )
+
+    # 2. Site Settings Seed
+    cursor.execute("SELECT COUNT(*) FROM site_settings")
+    if cursor.fetchone()[0] == 0:
+        default_settings = {
+            'company_name': 'FAST CARS Rental & Luxury Fleet',
+            'company_phone': '+1 (800) 555-FAST (3278)',
+            'company_email': 'support@fastcars.com',
+            'company_address': '742 Evergreen Terrace, Auto Plaza Suite 100, Los Angeles, CA 90001',
+            'working_hours': 'Mon - Sat: 8:00 AM - 8:00 PM | Sun: 9:00 AM - 5:00 PM',
+            'about_us': (
+                "Welcome to FAST CARS, your premier car rental partner. Founded with a vision to revolutionize the car rental experience, "
+                "we provide an extensive fleet ranging from economical city cruisers to high-end executive sedans and luxury SUVs. "
+                "Our mission is to deliver exceptional customer service, transparent upfront pricing with zero hidden fees, and modern well-maintained vehicles. "
+                "Whether you need a daily commute, an unforgettable road trip, or prestigious business travel, FAST CARS puts you in the driver's seat with confidence."
+            ),
+            'terms_conditions': (
+                "1. Driver Requirements: All drivers must be at least 21 years of age and hold a valid full driver's license.\n"
+                "2. Security Deposit: A refundable deposit or pre-authorization is required upon vehicle pick-up.\n"
+                "3. Fuel Policy: Vehicles are provided with a full tank and should be returned with a full tank, or refueling charges will apply.\n"
+                "4. Cancellation: Free cancellation is available up to 24 hours prior to the scheduled pick-up time.\n"
+                "5. Mileage: Standard rentals include 200 miles/day. Additional mileage is charged at standard per-mile rates."
+            ),
+            'privacy_policy': (
+                "FAST CARS respects and protects your personal privacy. We collect only necessary contact and booking details "
+                "to fulfill your reservation requests. We never sell, lease, or share your private information with unauthorized third parties. "
+                "All payment details and passwords are cryptographically secured using industry-standard protocols."
+            )
+        }
+        for k, v in default_settings.items():
+            cursor.execute("INSERT OR REPLACE INTO site_settings (key, value) VALUES (?, ?)", (k, v))
+
+    # 3. Brands Seed
+    cursor.execute("SELECT COUNT(*) FROM brands")
+    if cursor.fetchone()[0] == 0:
+        brands = [
+            'BMW',
+            'Mercedes-Benz',
+            'Audi',
+            'Tesla',
+            'Porsche',
+            'Toyota',
+            'Ford',
+            'Hyundai'
+        ]
+        for b in brands:
+            cursor.execute("INSERT INTO brands (name) VALUES (?)", (b,))
+
+    # 4. Registered Demo User Seed
+    cursor.execute("SELECT COUNT(*) FROM users")
+    if cursor.fetchone()[0] == 0:
+        demo_user_sql = """
+            INSERT INTO users (full_name, email, password_hash, phone, address, city, country, security_question, security_answer)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """
+        cursor.execute(demo_user_sql, (
+            'John Doe',
+            'john@example.com',
+            generate_password_hash('user123'),
+            '+1 (555) 234-5678',
+            '123 Maple Street',
+            'Los Angeles',
+            'United States',
+            'What was the name of your first pet?',
+            'Max'
+        ))
+
+    # 5. Vehicles Seed
+    cursor.execute("SELECT COUNT(*) FROM vehicles")
+    if cursor.fetchone()[0] == 0:
+        # Fetch brand IDs
+        brand_map = {}
+        for row in cursor.execute("SELECT id, name FROM brands").fetchall():
+            brand_map[row['name']] = row['id']
+
+        vehicles = [
+            {
+                'title': 'BMW M4 Competition Coupe',
+                'brand_id': brand_map.get('BMW', 1),
+                'overview': 'The BMW M4 Competition Coupe delivers exhilarating performance with a 503-hp twin-turbo inline-six, race-inspired bucket seats, and aggressive aerodynamic styling.',
+                'price_per_day': 185.00,
+                'fuel_type': 'Petrol',
+                'model_year': 2024,
+                'seating_capacity': 4,
+                'transmission': 'Automatic',
+                'category': 'Small',
+                'image_url': '/static/images/cars/car_1_front.jpg',
+                'image_side': '/static/images/cars/car_1_side.jpg',
+                'image_rear': '/static/images/cars/car_1_rear.jpg',
+                'image_interior': '/static/images/cars/car_1_interior.jpg',
+                'leather_seats': 1, 'gps_navigation': 1, 'bluetooth': 1, 'air_conditioner': 1, 'driver_airbag': 1, 'passenger_airbag': 1, 'antilock_braking_system': 1
+            },
+            {
+                'title': 'Mercedes-Benz S-Class AMG Line',
+                'brand_id': brand_map.get('Mercedes-Benz', 2),
+                'overview': 'The pinnacle of automotive luxury. Whisper-quiet cabin, massaging executive leather seats, high-end Burmester audio, and effortless twin-turbo V8 propulsion.',
+                'price_per_day': 220.00,
+                'fuel_type': 'Hybrid',
+                'model_year': 2024,
+                'seating_capacity': 5,
+                'transmission': 'Automatic',
+                'category': 'Premium',
+                'image_url': '/static/images/cars/car_2_front.jpg',
+                'image_side': '/static/images/cars/car_2_side.jpg',
+                'image_rear': '/static/images/cars/car_2_rear.jpg',
+                'image_interior': '/static/images/cars/car_2_interior.jpg',
+                'leather_seats': 1, 'gps_navigation': 1, 'bluetooth': 1, 'air_conditioner': 1, 'driver_airbag': 1, 'passenger_airbag': 1, 'antilock_braking_system': 1
+            },
+            {
+                'title': 'Tesla Model 3 Performance',
+                'brand_id': brand_map.get('Tesla', 4),
+                'overview': 'Mind-bending 0-60 in 3.1s dual-motor electric performance. Featuring full glass panoramic roof, minimalist touchscreen cockpit, autopilot assistance, and over 315 miles range.',
+                'price_per_day': 170.00,
+                'fuel_type': 'Electric',
+                'model_year': 2024,
+                'seating_capacity': 5,
+                'transmission': 'Automatic',
+                'category': 'Small',
+                'image_url': '/static/images/cars/car_3_front.jpg',
+                'image_side': '/static/images/cars/car_3_side.jpg',
+                'image_rear': '/static/images/cars/car_3_rear.jpg',
+                'image_interior': '/static/images/cars/car_3_interior.jpg',
+                'leather_seats': 1, 'gps_navigation': 1, 'bluetooth': 1, 'air_conditioner': 1, 'driver_airbag': 1, 'passenger_airbag': 1, 'antilock_braking_system': 1
+            },
+            {
+                'title': 'Audi RS6 Avant Quattro',
+                'brand_id': brand_map.get('Audi', 3),
+                'overview': 'Supercar speed packed into the world’s most versatile luxury wagon. Twin-turbo V8, quattro all-wheel drive, and cavernous trunk space for travel gear.',
+                'price_per_day': 195.00,
+                'fuel_type': 'Petrol',
+                'model_year': 2023,
+                'seating_capacity': 5,
+                'transmission': 'Automatic',
+                'category': 'Large',
+                'image_url': '/static/images/cars/car_4_front.jpg',
+                'image_side': '/static/images/cars/car_4_side.jpg',
+                'image_rear': '/static/images/cars/car_4_rear.jpg',
+                'image_interior': '/static/images/cars/car_4_interior.jpg',
+                'leather_seats': 1, 'gps_navigation': 1, 'bluetooth': 1, 'air_conditioner': 1, 'driver_airbag': 1, 'passenger_airbag': 1, 'antilock_braking_system': 1
+            },
+            {
+                'title': 'Porsche 911 Carrera S (992)',
+                'brand_id': brand_map.get('Porsche', 5),
+                'overview': 'Timeless silhouette and precision German engineering. Twin-turbo flat-six, sports exhaust, responsive paddle shifters, and unforgettable handling on winding roads.',
+                'price_per_day': 260.00,
+                'fuel_type': 'Petrol',
+                'model_year': 2021,
+                'seating_capacity': 4,
+                'transmission': 'Automatic',
+                'category': 'Premium',
+                'image_url': '/static/images/cars/car_5_front.jpg',
+                'image_side': '/static/images/cars/car_5_side.jpg',
+                'image_rear': '/static/images/cars/car_5_rear.jpg',
+                'image_interior': None,
+                'leather_seats': 1, 'gps_navigation': 1, 'bluetooth': 1, 'air_conditioner': 1, 'driver_airbag': 1, 'passenger_airbag': 1, 'antilock_braking_system': 1
+            },
+            {
+                'title': 'Toyota RAV4 Hybrid Limited',
+                'brand_id': brand_map.get('Toyota', 6),
+                'overview': 'Reliable, fuel-efficient SUV loaded with smart tech, spacious seating, all-wheel drive, and generous cargo capacity for family trips.',
+                'price_per_day': 75.00,
+                'fuel_type': 'Hybrid',
+                'model_year': 2023,
+                'seating_capacity': 5,
+                'transmission': 'Automatic',
+                'category': 'Large',
+                'image_url': '/static/images/cars/car_6_front.jpg',
+                'image_side': '/static/images/cars/car_6_side.jpg',
+                'image_rear': '/static/images/cars/car_6_rear.jpg',
+                'image_interior': '/static/images/cars/car_6_interior.jpg',
+                'leather_seats': 0, 'gps_navigation': 1, 'bluetooth': 1, 'air_conditioner': 1, 'driver_airbag': 1, 'passenger_airbag': 1, 'antilock_braking_system': 1
+            },
+            {
+                'title': 'Ford Mustang GT 5.0 V8',
+                'brand_id': brand_map.get('Ford', 7),
+                'overview': 'American muscle at its finest. Roaring 5.0L Coyote V8 engine producing 480 horsepower, Brembo brakes, and iconic road presence.',
+                'price_per_day': 110.00,
+                'fuel_type': 'Petrol',
+                'model_year': 2023,
+                'seating_capacity': 4,
+                'transmission': 'Automatic',
+                'category': 'Premium',
+                'image_url': '/static/images/cars/car_7_front.jpg',
+                'image_side': '/static/images/cars/car_7_side.jpg',
+                'image_rear': '/static/images/cars/car_7_rear.jpg',
+                'image_interior': '/static/images/cars/car_7_interior.jpg',
+                'leather_seats': 1, 'gps_navigation': 1, 'bluetooth': 1, 'air_conditioner': 1, 'driver_airbag': 1, 'passenger_airbag': 1, 'antilock_braking_system': 1
+            },
+            {
+                'title': 'Hyundai Ioniq 5 Electric Crossover',
+                'brand_id': brand_map.get('Hyundai', 8),
+                'overview': 'Futuristic styling, ultra-fast 800V charging, lounge-style relaxing cabin, and ultra-smooth silent electric drive.',
+                'price_per_day': 85.00,
+                'fuel_type': 'Electric',
+                'model_year': 2024,
+                'seating_capacity': 5,
+                'transmission': 'Automatic',
+                'category': 'Small',
+                'image_url': '/static/images/cars/car_8_front.jpg',
+                'image_side': '/static/images/cars/car_8_side.jpg',
+                'image_rear': '/static/images/cars/car_8_rear.jpg',
+                'image_interior': '/static/images/cars/car_8_interior.jpg',
+                'leather_seats': 0, 'gps_navigation': 1, 'bluetooth': 1, 'air_conditioner': 1, 'driver_airbag': 1, 'passenger_airbag': 1, 'antilock_braking_system': 1
+            }
+        ]
+
+        for v in vehicles:
+            cursor.execute("""
+                INSERT INTO vehicles (
+                    title, brand_id, overview, price_per_day, fuel_type, model_year,
+                    seating_capacity, transmission, category, image_url, image_side,
+                    image_rear, image_interior, leather_seats, gps_navigation,
+                    bluetooth, air_conditioner, driver_airbag, passenger_airbag, antilock_braking_system
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                v['title'], v['brand_id'], v['overview'], v['price_per_day'], v['fuel_type'],
+                v['model_year'], v['seating_capacity'], v['transmission'], v.get('category', 'Premium'),
+                v['image_url'], v.get('image_side'), v.get('image_rear'), v.get('image_interior'),
+                v.get('leather_seats', 1), v.get('gps_navigation', 1), v.get('bluetooth', 1),
+                v.get('air_conditioner', 1), v.get('driver_airbag', 1), v.get('passenger_airbag', 1),
+                v.get('antilock_braking_system', 1)
+            ))
+
+    # 6. Testimonials Seed
+    cursor.execute("SELECT COUNT(*) FROM testimonials")
+    if cursor.fetchone()[0] == 0:
+        cursor.execute("SELECT id FROM users LIMIT 1")
+        user_row = cursor.fetchone()
+        user_id = user_row[0] if user_row else 1
+        testimonials = [
+            (user_id, 5, "Seamless rental experience!", "Rented the BMW M4 for a weekend trip to Napa Valley. The car was spotless, pick-up took less than 3 minutes, and customer support was exceptional. Highly recommended!", 1),
+            (user_id, 5, "Unbeatable luxury and service", "FAST CARS lived up to its name. The Mercedes S-Class was like gliding on a cloud. Outstanding service from start to finish.", 1),
+            (user_id, 4, "Smooth and eco-friendly", "Booked the Tesla Model S Plaid for a business convention. Supercharging network was easy and the car performance was out of this world.", 1)
+        ]
+        for t in testimonials:
+            cursor.execute("INSERT INTO testimonials (user_id, rating, title, content, status) VALUES (?, ?, ?, ?, ?)", t)
+
+    # 7. Sample Bookings Seed
+    cursor.execute("SELECT COUNT(*) FROM bookings")
+    if cursor.fetchone()[0] == 0:
+        today = date.today()
+        cursor.execute("""
+            INSERT INTO bookings (
+                booking_number, user_id, vehicle_id, from_date, to_date, total_days,
+                total_price, pickup_location, dropoff_location, driver_needed, message, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            'FC-2026-8812',
+            1,
+            1,
+            (today + timedelta(days=2)).isoformat(),
+            (today + timedelta(days=5)).isoformat(),
+            3,
+            555.00,
+            'Los Angeles International Airport (LAX)',
+            'Los Angeles International Airport (LAX)',
+            0,
+            'Arriving on flight AA204 at terminal 4.',
+            'Confirmed'
+        ))
+
+    # 8. Sample Contact Query Seed
+    cursor.execute("SELECT COUNT(*) FROM contact_queries")
+    if cursor.fetchone()[0] == 0:
+        cursor.execute("""
+            INSERT INTO contact_queries (name, email, phone, subject, message, status)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (
+            'Sarah Jenkins',
+            'sarah.j@example.com',
+            '+1 (555) 987-6543',
+            'Corporate Fleet Rental Inquiry',
+            'Hello FAST CARS team, we are planning a 3-day executive conference next month and need 4 executive sedans with dedicated drivers. Could you provide a customized corporate package quotation?',
+            'New'
+        ))
+
+    # 9. Sample Newsletter Subscriber Seed
+    cursor.execute("SELECT COUNT(*) FROM subscribers")
+    if cursor.fetchone()[0] == 0:
+        cursor.execute("INSERT INTO subscribers (email) VALUES (?)", ('vip.driver@example.com',))
+
+    conn.commit()
+
+if __name__ == '__main__':
+    print("Initializing FAST CARS database...")
+    init_db()
+    print("Database fastcars.db initialized and seeded successfully.")

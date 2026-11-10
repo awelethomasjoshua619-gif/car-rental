@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Frequently Asked Questions - FAST CARS Rental Booking System{% endblock %}
+
+{% block content %}
+<div class="py-4 bg-dark bg-opacity-50 border-bottom border-secondary border-opacity-25 mb-4">
+    <div class="container">
+        <h1 class="h2 mb-1 text-white">Frequently Asked Questions</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb small mb-0">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}" class="text-white-50 text-decoration-none">Home</a></li>
+                <li class="breadcrumb-item active text-primary" aria-current="page">FAQ</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            <div class="accordion" id="faqAccordion">
+                <div class="accordion-item bg-card border-secondary border-opacity-25 mb-3 rounded overflow-hidden">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button bg-card text-white fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                            What happens after I send a reservation request?
+                        </button>
+                    </h2>
+                    <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body text-white-50">
+                            Your request is saved as Pending. FAST CARS staff review it and email you when its status changes. The website does not collect an online payment.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item bg-card border-secondary border-opacity-25 mb-3 rounded overflow-hidden">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed bg-card text-white fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                            How is the rental estimate calculated?
+                        </button>
+                    </h2>
+                    <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body text-white-50">
+                            The estimate uses the vehicle's daily rate and rental dates. A chauffeur can be requested for an additional $35 per day. Same-day rentals are charged as one day.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item bg-card border-secondary border-opacity-25 mb-3 rounded overflow-hidden">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed bg-card text-white fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                            Can I cancel or modify my booking reservation?
+                        </button>
+                    </h2>
+                    <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body text-white-50">
+                            You can cancel a Pending request from your <a href="{{ url_for('my_bookings') }}" class="text-primary">Booking History</a>. Confirmed bookings cannot be cancelled online; contact FAST CARS using the details on the Contact page.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item bg-card border-secondary border-opacity-25 mb-3 rounded overflow-hidden">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed bg-card text-white fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                            Is fuel included in the rental price?
+                        </button>
+                    </h2>
+                    <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body text-white-50">
+                            Enter the requested pick-up and drop-off addresses in the booking form. Staff will confirm the locations with you when they review the reservation.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item bg-card border-secondary border-opacity-25 mb-3 rounded overflow-hidden">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed bg-card text-white fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
+                            Can I add a professional chauffeur driver?
+                        </button>
+                    </h2>
+                    <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body text-white-50">
+                            Yes. Select the chauffeur option in the booking form. The estimate adds $35 per rental day.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

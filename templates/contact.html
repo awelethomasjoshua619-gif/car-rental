@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Contact Us - FAST CARS Rental Booking System{% endblock %}
+
+{% block content %}
+<div class="py-4 bg-dark bg-opacity-50 border-bottom border-secondary border-opacity-25 mb-4">
+    <div class="container">
+        <h1 class="h2 mb-1 text-white">Contact & Support</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb small mb-0">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}" class="text-white-50 text-decoration-none">Home</a></li>
+                <li class="breadcrumb-item active text-primary" aria-current="page">Contact Us</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <div class="row g-5">
+        <!-- Inquiry Form -->
+        <div class="col-lg-7">
+            <div class="content-card p-4 p-md-5">
+                <h3 class="text-white mb-2">Send Us an Inquiry</h3>
+                <p class="text-white-50 small mb-4">Have questions about fleet reservations, corporate bookings, or special requests? Fill in the form and our concierge team will reply swiftly.</p>
+
+                <form action="{{ url_for('contact') }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-white-50 small">Full Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control" placeholder="Your full name" value="{{ current_user.full_name if current_user else '' }}" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label text-white-50 small">Email Address <span class="text-danger">*</span></label>
+                            <input type="email" name="email" class="form-control" placeholder="name@example.com" value="{{ current_user.email if current_user else '' }}" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label text-white-50 small">Phone Number</label>
+                            <input type="text" name="phone" class="form-control" placeholder="+1 (555) 000-0000" value="{{ current_user.phone if current_user and current_user.phone else '' }}">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label text-white-50 small">Subject</label>
+                            <input type="text" name="subject" class="form-control" placeholder="Rental reservation inquiry">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label text-white-50 small">Message / Inquiry Details <span class="text-danger">*</span></label>
+                            <textarea name="message" class="form-control" rows="5" placeholder="Please specify vehicle preferences, booking dates, or questions..." required></textarea>
+                        </div>
+
+                        <div class="col-12 mt-4">
+                            <button type="submit" class="btn btn-primary px-5 py-3 rounded-pill fw-bold shadow">
+                                <i class="fa-solid fa-paper-plane me-2"></i> Submit Inquiry
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Contact Information & Company Details -->
+        <div class="col-lg-5">
+            <div class="content-card p-4 p-md-5 h-100 d-flex flex-column justify-content-between">
+                <div>
+                    <h4 class="text-white mb-4">Headquarters & Support</h4>
+                    
+                    <div class="d-flex align-items-start gap-3 mb-4">
+                        <div class="feature-icon-wrapper" style="width: 48px; height: 48px; font-size: 1.25rem;">
+                            <i class="fa-solid fa-location-dot"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-white mb-1">Corporate Office</h6>
+                            <p class="text-white-50 small mb-0">{{ site_settings.get('company_address') or 'Address not yet provided' }}</p>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-start gap-3 mb-4">
+                        <div class="feature-icon-wrapper" style="width: 48px; height: 48px; font-size: 1.25rem;">
+                            <i class="fa-solid fa-phone"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-white mb-1">Phone Assistance</h6>
+                            <p class="text-white-50 small mb-0">{{ site_settings.get('company_phone') or 'Phone number not yet provided' }}</p>
+                            <span class="badge bg-success bg-opacity-25 text-success small mt-1">Toll Free 24/7</span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-start gap-3 mb-4">
+                        <div class="feature-icon-wrapper" style="width: 48px; height: 48px; font-size: 1.25rem;">
+                            <i class="fa-solid fa-envelope"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-white mb-1">Customer Support Email</h6>
+                            <p class="text-white-50 small mb-0">{{ site_settings.get('company_email') or 'Email address not yet provided' }}</p>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-start gap-3 mb-4">
+                        <div class="feature-icon-wrapper" style="width: 48px; height: 48px; font-size: 1.25rem;">
+                            <i class="fa-solid fa-clock"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-white mb-1">Operating Hours</h6>
+                            <p class="text-white-50 small mb-0">{{ site_settings.get('working_hours', 'Mon - Sat: 8am - 8pm') }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-dark bg-opacity-50 rounded-3 border border-secondary border-opacity-25 text-center mt-3">
+                    <h6 class="text-primary mb-1"><i class="fa-solid fa-car-side me-1"></i> Airport Fast Track</h6>
+                    <span class="text-white-50 small">Pickup directly at LAX Terminals 1-7 with advance reservation.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

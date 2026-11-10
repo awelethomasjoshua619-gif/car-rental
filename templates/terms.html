@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Terms & Conditions - FAST CARS Rental Booking System{% endblock %}
+
+{% block content %}
+<div class="py-4 bg-dark bg-opacity-50 border-bottom border-secondary border-opacity-25 mb-4">
+    <div class="container">
+        <h1 class="h2 mb-1 text-white">Rental Terms & Conditions</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb small mb-0">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}" class="text-white-50 text-decoration-none">Home</a></li>
+                <li class="breadcrumb-item active text-primary" aria-current="page">Terms & Conditions</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="content-card p-4 p-md-5">
+                <div class="text-white-50 leading-relaxed">
+                    <h4 class="text-white mb-3">FAST CARS Rental Agreement Guidelines</h4>
+                    <div style="white-space: pre-line;" class="mb-4">
+                        {{ site_settings.get('terms_conditions', '') }}
+                    </div>
+
+                    {% if not site_settings.get('terms_conditions') %}
+                        <p class="mb-0">Rental terms have not been configured yet. Contact the rental team before submitting a reservation request.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

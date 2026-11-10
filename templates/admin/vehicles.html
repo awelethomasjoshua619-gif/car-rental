@@ -1,0 +1,83 @@
+{% extends "admin/base_admin.html" %}
+
+{% block page_title %}Manage Fleet Vehicles{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h5 class="text-white mb-0"><i class="fa-solid fa-car text-primary me-2"></i> Fleet Catalog ({{ vehicles|length }} Vehicles)</h5>
+            <span class="text-white-50 small">Manage listed vehicles, edit technical specs, and adjust daily rental pricing.</span>
+        </div>
+        <a href="{{ url_for('admin_vehicle_add') }}" class="btn btn-primary rounded-pill px-4 fw-semibold">
+            <i class="fa-solid fa-plus me-1"></i> Post New Vehicle
+        </a>
+    </div>
+
+    {% if vehicles %}
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Vehicle</th>
+                        <th>Brand</th>
+                        <th>Price / Day</th>
+                        <th>Specs</th>
+                        <th>Year</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for v in vehicles %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="rounded-2 overflow-hidden flex-shrink-0" style="width: 70px; height: 48px;">
+                                        <img src="{{ v.image_url }}" alt="{{ v.title }}" class="w-100 h-100 object-fit-cover">
+                                    </div>
+                                    <div>
+                                        <strong class="text-white d-block">{{ v.title }}</strong>
+                                        <span class="text-white-50 small">{{ v.fuel_type }} &bull; {{ v.transmission }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="badge bg-secondary">{{ v.brand_name }}</span></td>
+                            <td><strong class="text-primary fs-6">${{ "%.2f"|format(v.price_per_day) }}</strong></td>
+                            <td class="small text-white-50">
+                                {{ v.seating_capacity }} Seats &bull; {{ v.transmission }}
+                            </td>
+                            <td>{{ v.model_year }}</td>
+                            <td>
+                                {% if v.status == 'Available' %}
+                                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25">Available</span>
+                                {% else %}
+                                    <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25">{{ v.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <div class="d-inline-flex gap-2">
+                                    <a href="{{ url_for('car_details', vehicle_id=v.id) }}" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-1" target="_blank" title="Preview Car">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('admin_vehicle_edit', vehicle_id=v.id) }}" class="btn btn-sm btn-outline-info rounded-pill px-3 py-1">
+                                        <i class="fa-solid fa-pen-to-square"></i> Edit
+                                    </a>
+                                    <form action="{{ url_for('admin_vehicle_delete', vehicle_id=v.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete vehicle: {{ v.title }}?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-2 py-1" title="Delete Vehicle">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-white-50 text-center py-5 mb-0">No vehicles posted in the fleet. Click "Post New Vehicle" to add one.</p>
+    {% endif %}
+</div>
+{% endblock %}

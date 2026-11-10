@@ -1,0 +1,234 @@
+{% extends "admin/base_admin.html" %}
+
+{% block page_title %}Edit Vehicle Details{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h5 class="text-white mb-0"><i class="fa-solid fa-pen-to-square text-primary me-2"></i> Edit Vehicle: {{ vehicle.title }}</h5>
+            <span class="text-white-50 small">Update vehicle specifications, pricing, features, and active availability.</span>
+        </div>
+        <a href="{{ url_for('admin_vehicles') }}" class="btn btn-outline-secondary rounded-pill px-3 btn-sm">
+            <i class="fa-solid fa-arrow-left me-1"></i> Back to Fleet
+        </a>
+    </div>
+
+    <form action="{{ url_for('admin_vehicle_edit', vehicle_id=vehicle.id) }}" method="POST" enctype="multipart/form-data">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <!-- Basic Info -->
+        <h6 class="text-primary mb-3"><i class="fa-solid fa-id-badge me-1"></i> Basic Details</h6>
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <label class="form-label text-white-50 small">Vehicle Title / Model <span class="text-danger">*</span></label>
+                <input type="text" name="title" class="form-control" value="{{ vehicle.title }}" required>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label text-white-50 small">Vehicle Brand <span class="text-danger">*</span></label>
+                <select name="brand_id" class="form-select" required>
+                    {% for b in brands %}
+                        <option value="{{ b.id }}" {% if vehicle.brand_id == b.id %}selected{% endif %}>{{ b.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label text-white-50 small">Rental Price Per Day ($) <span class="text-danger">*</span></label>
+                <input type="number" step="0.01" name="price_per_day" class="form-control" value="{{ vehicle.price_per_day }}" required>
+            </div>
+
+            <div class="col-12">
+                <label class="form-label text-white-50 small">Vehicle Overview / Description</label>
+                <textarea name="overview" class="form-control" rows="3">{{ vehicle.overview }}</textarea>
+            </div>
+        </div>
+
+        <!-- Technical Specs -->
+        <h6 class="text-primary mb-3"><i class="fa-solid fa-sliders me-1"></i> Technical Specifications</h6>
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <label class="form-label text-white-50 small">Fuel Type</label>
+                <select name="fuel_type" class="form-select" required>
+                    <option value="Petrol" {% if vehicle.fuel_type == 'Petrol' %}selected{% endif %}>Petrol</option>
+                    <option value="Diesel" {% if vehicle.fuel_type == 'Diesel' %}selected{% endif %}>Diesel</option>
+                    <option value="Electric" {% if vehicle.fuel_type == 'Electric' %}selected{% endif %}>Electric</option>
+                    <option value="Hybrid" {% if vehicle.fuel_type == 'Hybrid' %}selected{% endif %}>Hybrid</option>
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label text-white-50 small">Model Year</label>
+                <input type="number" name="model_year" class="form-control" value="{{ vehicle.model_year }}" required>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label text-white-50 small">Seating Capacity</label>
+                <input type="number" name="seating_capacity" class="form-control" value="{{ vehicle.seating_capacity }}" required>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label text-white-50 small">Transmission</label>
+                <select name="transmission" class="form-select" required>
+                    <option value="Automatic" {% if vehicle.transmission == 'Automatic' %}selected{% endif %}>Automatic</option>
+                    <option value="Manual" {% if vehicle.transmission == 'Manual' %}selected{% endif %}>Manual</option>
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label text-white-50 small">Car Size / Category</label>
+                <select name="category" class="form-select" required>
+                    <option value="Small" {% if vehicle.category == 'Small' %}selected{% endif %}>Small (Compact, agile)</option>
+                    <option value="Premium" {% if vehicle.category == 'Premium' %}selected{% endif %}>Premium (Luxury, executive, sports)</option>
+                    <option value="Large" {% if vehicle.category == 'Large' %}selected{% endif %}>Large (SUV, family, luggage)</option>
+                </select>
+            </div>
+
+            <div class="col-12">
+                <h6 class="text-primary mb-1">Vehicle photo gallery</h6>
+                <p class="text-white-50 small mb-0">These views belong to this vehicle. Keep the current photo or upload/paste a replacement for each angle.</p>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-white-50 small">Front photo</label>
+                <img src="{{ vehicle.image_url }}" alt="Current front view of {{ vehicle.title }}" class="vehicle-angle-preview mb-2">
+                <input type="file" name="image_file" class="form-control" accept=".png,.jpg,.jpeg,.webp,.gif">
+                <input type="url" name="image_url" class="form-control mt-2" value="{{ vehicle.image_url }}" aria-label="Front image URL">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-white-50 small">Side photo</label>
+                {% if vehicle.image_side %}<img src="{{ vehicle.image_side }}" alt="Current side view of {{ vehicle.title }}" class="vehicle-angle-preview mb-2">{% endif %}
+                <input type="file" name="image_side_file" class="form-control" accept=".png,.jpg,.jpeg,.webp,.gif">
+                <input type="url" name="image_side" class="form-control mt-2" value="{{ vehicle.image_side or '' }}" aria-label="Side image URL">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-white-50 small">Rear photo</label>
+                {% if vehicle.image_rear %}<img src="{{ vehicle.image_rear }}" alt="Current rear view of {{ vehicle.title }}" class="vehicle-angle-preview mb-2">{% endif %}
+                <input type="file" name="image_rear_file" class="form-control" accept=".png,.jpg,.jpeg,.webp,.gif">
+                <input type="url" name="image_rear" class="form-control mt-2" value="{{ vehicle.image_rear or '' }}" aria-label="Rear image URL">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-white-50 small">Interior photo</label>
+                {% if vehicle.image_interior %}<img src="{{ vehicle.image_interior }}" alt="Current interior view of {{ vehicle.title }}" class="vehicle-angle-preview mb-2">{% endif %}
+                <input type="file" name="image_interior_file" class="form-control" accept=".png,.jpg,.jpeg,.webp,.gif">
+                <input type="url" name="image_interior" class="form-control mt-2" value="{{ vehicle.image_interior or '' }}" aria-label="Interior image URL">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label text-white-50 small">Operational Status</label>
+                <select name="status" class="form-select">
+                    <option value="Available" {% if vehicle.status == 'Available' %}selected{% endif %}>Available</option>
+                    <option value="Booked" {% if vehicle.status == 'Booked' %}selected{% endif %}>Booked</option>
+                    <option value="Maintenance" {% if vehicle.status == 'Maintenance' %}selected{% endif %}>Maintenance</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Accessories & Features Checklist -->
+        <h6 class="text-primary mb-3"><i class="fa-solid fa-list-check me-1"></i> Features & Accessories Checklist</h6>
+        <div class="row g-3 p-3 bg-dark bg-opacity-50 rounded-3 border border-secondary border-opacity-25 mb-4">
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="air_conditioner" id="f_ac" {% if vehicle.air_conditioner %}checked{% endif %}>
+                    <label class="form-check-label text-white small" for="f_ac">Air Conditioner</label>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="power_door_locks" id="f_pdl" {% if vehicle.power_door_locks %}checked{% endif %}>
+                    <label class="form-check-label text-white small" for="f_pdl">Power Door Locks</label>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="antilock_braking_system" id="f_abs" {% if vehicle.antilock_braking_system %}checked{% endif %}>
+                    <label class="form-check-label text-white small" for="f_abs">AntiLock Braking (ABS)</label>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="brake_assist" id="f_ba" {% if vehicle.brake_assist %}checked{% endif %}>
+                    <label class="form-check-label text-white small" for="f_ba">Brake Assist</label>
+                </div>
+            </div>
+
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="power_steering" id="f_ps" {% if vehicle.power_steering %}checked{% endif %}>
+                    <label class="form-check-label text-white small" for="f_ps">Power Steering</label>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="driver_airbag" id="f_da" {% if vehicle.driver_airbag %}checked{% endif %}>
+                    <label class="form-check-label text-white small" for="f_da">Driver Airbag</label>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="passenger_airbag" id="f_pa" {% if vehicle.passenger_airbag %}checked{% endif %}>
+                    <label class="form-check-label text-white small" for="f_pa">Passenger Airbag</label>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="power_windows" id="f_pw" {% if vehicle.power_windows %}checked{% endif %}>
+                    <label class="form-check-label text-white small" for="f_pw">Power Windows</label>
+                </div>
+            </div>
+
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="cd_player" id="f_cd" {% if vehicle.cd_player %}checked{% endif %}>
+                    <label class="form-check-label text-white small" for="f_cd">CD/MP3 Player</label>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="central_locking" id="f_cl" {% if vehicle.central_locking %}checked{% endif %}>
+                    <label class="form-check-label text-white small" for="f_cl">Central Locking</label>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="crash_sensor" id="f_cs" {% if vehicle.crash_sensor %}checked{% endif %}>
+                    <label class="form-check-label text-white small" for="f_cs">Crash Sensor</label>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="leather_seats" id="f_ls" {% if vehicle.leather_seats %}checked{% endif %}>
+                    <label class="form-check-label text-white small" for="f_ls">Leather Seats</label>
+                </div>
+            </div>
+
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="bluetooth" id="f_bt" {% if vehicle.bluetooth %}checked{% endif %}>
+                    <label class="form-check-label text-white small" for="f_bt">Bluetooth Audio</label>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="child_seat" id="f_ch" {% if vehicle.child_seat %}checked{% endif %}>
+                    <label class="form-check-label text-white small" for="f_ch">Child Safety Seat</label>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="gps_navigation" id="f_gps" {% if vehicle.gps_navigation %}checked{% endif %}>
+                    <label class="form-check-label text-white small" for="f_gps">GPS Navigation</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-3">
+            <button type="submit" class="btn btn-primary px-5 py-2 rounded-pill fw-bold">
+                <i class="fa-solid fa-floppy-disk me-1"></i> Update Vehicle
+            </button>
+            <a href="{{ url_for('admin_vehicles') }}" class="btn btn-secondary px-4 py-2 rounded-pill">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

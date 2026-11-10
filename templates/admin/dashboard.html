@@ -1,0 +1,225 @@
+{% extends "admin/base_admin.html" %}
+
+{% block page_title %}Operational Overview & Analytics{% endblock %}
+
+{% block content %}
+<div id="dashboard-live" data-initial-snapshot="{{ counts|tojson|forceescape }}" aria-live="polite" class="text-white-50 small mb-2">
+    Dashboard checks for new activity every 10 seconds.
+</div>
+<!-- Metric Cards Row -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-sm-6">
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <i class="fa-solid fa-users"></i>
+            </div>
+            <div>
+                <h3 class="stat-value">{{ counts.users }}</h3>
+                <div class="stat-label">Registered Users</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-sm-6">
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <i class="fa-solid fa-car-side"></i>
+            </div>
+            <div>
+                <h3 class="stat-value">{{ counts.vehicles }}</h3>
+                <div class="stat-label">Listed Vehicles ({{ counts.brands }} Brands)</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-sm-6">
+        <div class="stat-card">
+            <div class="stat-icon amber">
+                <i class="fa-solid fa-calendar-check"></i>
+            </div>
+            <div>
+                <h3 class="stat-value">{{ counts.bookings }}</h3>
+                <div class="stat-label">Total Bookings ({{ counts.pending_bookings }} Pending)</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-sm-6">
+        <div class="stat-card">
+            <div class="stat-icon purple">
+                <i class="fa-solid fa-envelope-open-text"></i>
+            </div>
+            <div>
+                <h3 class="stat-value">{{ counts.queries }}</h3>
+                <div class="stat-label">Inquiries ({{ counts.unread_queries }} Unread)</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Secondary Metrics Row -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="p-3 rounded-3 bg-card border border-secondary border-opacity-25 d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+                <i class="fa-solid fa-circle-check text-success fs-3"></i>
+                <div>
+                    <strong class="text-white d-block fs-5">{{ counts.confirmed_bookings }}</strong>
+                    <span class="text-white-50 small">Confirmed Reservations</span>
+                </div>
+            </div>
+            <a href="{{ url_for('admin_bookings', status='confirmed') }}" class="btn btn-sm btn-outline-success rounded-pill px-3">View</a>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="p-3 rounded-3 bg-card border border-secondary border-opacity-25 d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+                <i class="fa-solid fa-comment-dots text-warning fs-3"></i>
+                <div>
+                    <strong class="text-white d-block fs-5">{{ counts.testimonials }}</strong>
+                    <span class="text-white-50 small">Testimonials ({{ counts.pending_testimonials }} To Review)</span>
+                </div>
+            </div>
+            <a href="{{ url_for('admin_testimonials') }}" class="btn btn-sm btn-outline-warning rounded-pill px-3">Review</a>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="p-3 rounded-3 bg-card border border-secondary border-opacity-25 d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+                <i class="fa-solid fa-paper-plane text-info fs-3"></i>
+                <div>
+                    <strong class="text-white d-block fs-5">{{ counts.subscribers }}</strong>
+                    <span class="text-white-50 small">Active Newsletter Subscribers</span>
+                </div>
+            </div>
+            <a href="{{ url_for('admin_subscribers') }}" class="btn btn-sm btn-outline-info rounded-pill px-3">View</a>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Bookings Table -->
+<div class="admin-card mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="text-white mb-0"><i class="fa-solid fa-calendar-days text-primary me-2"></i> Recent Bookings</h5>
+        <a href="{{ url_for('admin_bookings') }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Manage All Bookings</a>
+    </div>
+
+    {% if recent_bookings %}
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Booking Ref</th>
+                        <th>Customer</th>
+                        <th>Vehicle</th>
+                        <th>Dates</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in recent_bookings %}
+                        <tr>
+                            <td><strong class="text-primary">#{{ b.booking_number }}</strong></td>
+                            <td>
+                                <strong class="text-white d-block">{{ b.user_name }}</strong>
+                                <span class="text-white-50 small">{{ b.user_email }}</span>
+                            </td>
+                            <td>{{ b.vehicle_title }}</td>
+                            <td>{{ b.from_date }} &rarr; {{ b.to_date }} ({{ b.total_days }}d)</td>
+                            <td><strong class="text-white">${{ "%.2f"|format(b.total_price) }}</strong></td>
+                            <td>
+                                {% if b.status == 'Confirmed' %}
+                                    <span class="badge badge-confirmed">Confirmed</span>
+                                {% elif b.status == 'Cancelled' %}
+                                    <span class="badge badge-cancelled">Cancelled</span>
+                                {% else %}
+                                    <span class="badge badge-pending">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('admin_bookings') }}" class="btn btn-sm btn-outline-light rounded-pill px-2 py-1">
+                                    <i class="fa-solid fa-gear me-1"></i> Update
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-white-50 text-center py-4 mb-0">No bookings recorded yet.</p>
+    {% endif %}
+</div>
+
+<!-- Recent Contact Queries -->
+<div class="admin-card">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="text-white mb-0"><i class="fa-solid fa-inbox text-primary me-2"></i> Recent Contact Inquiries</h5>
+        <a href="{{ url_for('admin_contacts') }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">View All Queries</a>
+    </div>
+
+    {% if recent_queries %}
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Sender</th>
+                        <th>Subject</th>
+                        <th>Message Preview</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for q in recent_queries %}
+                        <tr>
+                            <td>
+                                <strong class="text-white d-block">{{ q.name }}</strong>
+                                <span class="text-white-50 small">{{ q.email }}</span>
+                            </td>
+                            <td>{{ q.subject or 'General Inquiry' }}</td>
+                            <td class="text-white-50 small" style="max-width: 280px;">{{ q.message[:75] }}...</td>
+                            <td>{{ q.created_at[:10] }}</td>
+                            <td>
+                                {% if q.status == 'New' %}
+                                    <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25">New</span>
+                                {% else %}
+                                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25">{{ q.status }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-white-50 text-center py-4 mb-0">No contact queries yet.</p>
+    {% endif %}
+</div>
+<script>
+(() => {
+    const indicator = document.getElementById('dashboard-live');
+    if (!indicator) return;
+    const canonical = (value) => JSON.stringify(Object.keys(value).sort().map((key) => [key, value[key]]));
+    let previous = canonical(JSON.parse(indicator.dataset.initialSnapshot));
+    window.setInterval(async () => {
+        try {
+            const response = await fetch("{{ url_for('admin_dashboard_snapshot') }}", {
+                headers: { 'Accept': 'application/json' },
+                credentials: 'same-origin',
+                cache: 'no-store'
+            });
+            if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) return;
+            const snapshot = canonical(await response.json());
+            if (snapshot !== previous) window.location.reload();
+        } catch (_) {
+            indicator.textContent = 'Dashboard refresh will retry when the connection is available.';
+        }
+    }, 10000);
+})();
+</script>
+{% endblock %}

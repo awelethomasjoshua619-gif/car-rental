@@ -1,0 +1,48 @@
+{% extends "admin/base_admin.html" %}
+
+{% block page_title %}Manage Newsletter Subscribers{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h5 class="text-white mb-0"><i class="fa-solid fa-paper-plane text-primary me-2"></i> Newsletter Subscribers ({{ subscribers|length }})</h5>
+            <span class="text-white-50 small">Email list of visitors and drivers who opted in for promotional rental deals.</span>
+        </div>
+    </div>
+
+    {% if subscribers %}
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Subscriber Email</th>
+                        <th>Date Subscribed</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in subscribers %}
+                        <tr>
+                            <td>{{ s.id }}</td>
+                            <td><strong class="text-white">{{ s.email }}</strong></td>
+                            <td class="text-white-50 small">{{ s.subscribed_at[:10] }}</td>
+                            <td class="text-end">
+                                <form action="{{ url_for('admin_subscriber_delete', sub_id=s.id) }}" method="POST" onsubmit="return confirm('Remove this subscriber?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                                        <i class="fa-solid fa-trash me-1"></i> Remove
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-white-50 text-center py-5 mb-0">No subscribers on the list yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

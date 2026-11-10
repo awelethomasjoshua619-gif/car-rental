@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+
+{% block title %}FAST CARS - Rent the Right Car{% endblock %}
+
+{% block content %}
+<!-- ============================================================
+     PAGE 1: HERO SECTION (Black Background)
+     ============================================================ -->
+<section class="hero-section bg-black text-white pt-5 pb-5">
+    <div class="container-fluid px-lg-5">
+        <div class="row align-items-center g-5">
+            <!-- Left Column: Headline, subtext, buttons -->
+            <div class="col-lg-6">
+                <h1 class="hero-title text-white mb-3">
+                    RENT THE<br>
+                    RIGHT<br>
+                    CAR.
+                </h1>
+                <p class="hero-subtext mb-4 text-white-50">
+                    Small, premium or large. Choose your dates, pick a car and book online. We confirm it and you drive.
+                </p>
+                <div class="d-flex flex-wrap gap-3">
+                    <a href="#our-cars" class="btn btn-yellow fw-bold px-4 py-3">
+                        See our cars
+                    </a>
+                    <a href="#how-it-works" class="btn btn-outline-white fw-bold px-4 py-3">
+                        How booking works
+                    </a>
+                </div>
+            </div>
+
+            <!-- Right Column: Hero Photo (Side-on wide crop) -->
+            <div class="col-lg-6">
+                <div class="hero-photo-container">
+                    <img src="{{ url_for('static', filename='images/cars/car_1_front.jpg') }}"
+                         alt="FAST CARS Hero Photo - Side-on Wide Crop" 
+                         class="hero-photo-img">
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     PAGE 1: FLOATING SEARCH BAR (White Card, Black Details)
+     ============================================================ -->
+<section class="search-bar-section bg-black pb-5">
+    <div class="container-fluid px-lg-5">
+        <div class="search-bar-box bg-white p-3 p-lg-4 border border-1 border-dark shadow-sm">
+            <form action="{{ url_for('cars') }}" method="GET" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label text-dark fw-bold small text-uppercase mb-1 tracking-wide">Pick-up date</label>
+                    <input type="date" name="from_date" id="search_pickup" min="{{ today }}" class="form-control form-control-clean" required>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label text-dark fw-bold small text-uppercase mb-1 tracking-wide">Return date</label>
+                    <input type="date" name="to_date" id="search_return" min="{{ today }}" class="form-control form-control-clean" required>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label text-dark fw-bold small text-uppercase mb-1 tracking-wide">Car type</label>
+                    <select name="car_type" class="form-select form-select-clean">
+                        <option value="">Any</option>
+                        <option value="Small">Small</option>
+                        <option value="Premium">Premium</option>
+                        <option value="Large">Large</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-black w-100 fw-bold py-2 h-100">
+                        Search cars
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     PAGE 1: PICK YOUR SIZE SECTION (White Background, Black Cards)
+     ============================================================ -->
+<section class="section-pick-size bg-white text-dark py-5" id="pick-your-size">
+    <div class="container-fluid px-lg-5">
+        <h2 class="section-heading text-dark mb-4 text-uppercase">
+            PICK YOUR SIZE
+        </h2>
+
+        <div class="row g-4">
+            <!-- Small -->
+            <div class="col-md-4">
+                <a href="{{ url_for('cars', category='Small') }}" class="text-decoration-none text-white d-block h-100">
+                    <div class="size-card bg-dark text-white p-0 h-100 d-flex flex-column">
+                        <div class="size-card-img-wrapper">
+                            <img src="{{ small_img }}" alt="Small Cars" class="size-card-img">
+                        </div>
+                        <div class="p-4 mt-auto">
+                            <h3 class="size-card-title text-white mb-2">SMALL</h3>
+                            <p class="size-card-desc text-white-50 mb-0">
+                                {% if small_rate %}From &#36;{{ "%.0f"|format(small_rate) }} / day{% else %}View available vehicles in this category{% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Premium -->
+            <div class="col-md-4">
+                <a href="{{ url_for('cars', category='Premium') }}" class="text-decoration-none text-white d-block h-100">
+                    <div class="size-card bg-dark text-white p-0 h-100 d-flex flex-column">
+                        <div class="size-card-img-wrapper">
+                            <img src="{{ premium_img }}" alt="Premium Cars" class="size-card-img">
+                        </div>
+                        <div class="p-4 mt-auto">
+                            <h3 class="size-card-title text-white mb-2">PREMIUM</h3>
+                            <p class="size-card-desc text-white-50 mb-0">
+                                {% if premium_rate %}From &#36;{{ "%.0f"|format(premium_rate) }} / day{% else %}View available vehicles in this category{% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Large -->
+            <div class="col-md-4">
+                <a href="{{ url_for('cars', category='Large') }}" class="text-decoration-none text-white d-block h-100">
+                    <div class="size-card bg-dark text-white p-0 h-100 d-flex flex-column">
+                        <div class="size-card-img-wrapper">
+                            <img src="{{ large_img }}" alt="Large Cars" class="size-card-img">
+                        </div>
+                        <div class="p-4 mt-auto">
+                            <h3 class="size-card-title text-white mb-2">LARGE</h3>
+                            <p class="size-card-desc text-white-50 mb-0">
+                                {% if large_rate %}From &#36;{{ "%.0f"|format(large_rate) }} / day{% else %}View available vehicles in this category{% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     PAGE 2: OUR CARS SECTION (White Background, 4-Column Grid)
+     ============================================================ -->
+<section class="section-our-cars bg-white text-dark py-5 border-top border-secondary border-opacity-10" id="our-cars">
+    <div class="container-fluid px-lg-5">
+        <div class="d-flex justify-content-between align-items-baseline mb-4">
+            <h2 class="section-heading text-dark text-uppercase mb-0">
+                OUR CARS
+            </h2>
+            <a href="{{ url_for('cars') }}" class="text-dark fw-semibold text-decoration-underline small">
+                View all cars
+            </a>
+        </div>
+
+        <div class="row g-4">
+            {% for car in our_cars %}
+                <div class="col-lg-3 col-md-6">
+                    <div class="car-item-card h-100 d-flex flex-column">
+                        <div class="car-item-img-wrapper mb-3">
+                            <a href="{{ url_for('car_details', vehicle_id=car.id) }}#vehicle-gallery" aria-label="View {{ car.title }} photos and details">
+                                <img src="{{ car.image_url }}" alt="{{ car.title }}" class="car-item-img">
+                            </a>
+                        </div>
+                        <h5 class="car-item-title text-dark fw-bold mb-1 text-truncate">
+                            {{ car.brand_name }} {{ car.title.replace(car.brand_name, '').strip() }}
+                        </h5>
+                        <p class="car-item-specs text-muted small mb-3">
+                            {{ car.seating_capacity }} seats &middot; {{ car.transmission }} &middot; {{ car.fuel_type }}
+                        </p>
+                        <div class="d-flex justify-content-between align-items-center mt-auto pt-2">
+                            <span class="car-item-rate text-dark fw-bold fs-6">
+                                ${{ "%.0f"|format(car.price_per_day) }} <span class="fw-normal text-muted small">/ day</span>
+                            </span>
+                            <a href="{{ url_for('car_details', vehicle_id=car.id) }}" class="btn btn-black btn-sm px-3 py-1 fw-bold">
+                                Book
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     PAGE 2: THREE STEPS SECTION (Black Background, Yellow Numbers)
+     ============================================================ -->
+<section class="section-three-steps bg-black text-white py-5" id="how-it-works">
+    <div class="container-fluid px-lg-5 py-3">
+        <h2 class="section-heading text-white text-uppercase mb-5">
+            THREE STEPS
+        </h2>
+
+        <div class="row g-5">
+            <!-- Step 1 -->
+            <div class="col-md-4">
+                <div class="step-number text-yellow fw-900 mb-2">1</div>
+                <h4 class="text-white fw-bold mb-2">Register</h4>
+                <p class="text-white-50 leading-relaxed">
+                    Make an account with your email. You can recover your password any time.
+                </p>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="col-md-4">
+                <div class="step-number text-yellow fw-900 mb-2">2</div>
+                <h4 class="text-white fw-bold mb-2">Choose and book</h4>
+                <p class="text-white-50 leading-relaxed">
+                    Pick a car and your dates. Every booking is saved in your history.
+                </p>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="col-md-4">
+                <div class="step-number text-yellow fw-900 mb-2">3</div>
+                <h4 class="text-white fw-bold mb-2">We confirm</h4>
+                <p class="text-white-50 leading-relaxed">
+                    Our team confirms your booking. After your trip, leave a testimonial.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     PAGE 2: TESTIMONIAL SECTION (White Background, Huge Headline)
+     ============================================================ -->
+<section class="section-testimonial bg-white text-dark py-5 border-top border-secondary border-opacity-10">
+    <div class="container-fluid px-lg-5 py-4">
+        {% if featured_testimonial %}
+            <blockquote class="testimonial-large-quote text-dark fw-900 text-uppercase mb-3">
+                “{{ featured_testimonial.content|upper }}”
+            </blockquote>
+            <p class="testimonial-author text-muted fw-semibold">
+                {{ featured_testimonial.user_name }}, rented a {{ featured_testimonial.car_title or 'FAST CARS vehicle' }}
+            </p>
+        {% else %}
+            <p class="text-center text-muted mb-0">Customer reviews will appear here after they are submitted and approved.</p>
+        {% endif %}
+    </div>
+</section>
+
+<!-- ============================================================
+     PAGE 2: READY TO DRIVE? BANNER (Full-width Yellow Strip)
+     ============================================================ -->
+<section class="section-ready-banner bg-yellow py-4">
+    <div class="container-fluid px-lg-5">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <h2 class="ready-title text-dark fw-900 text-uppercase mb-0">
+                READY TO DRIVE?
+            </h2>
+            {% if current_user %}
+                <a href="{{ url_for('cars') }}" class="btn btn-black fw-bold px-4 py-3">
+                    Explore fleet now
+                </a>
+            {% else %}
+                <a href="{{ url_for('register') }}" class="btn btn-black fw-bold px-4 py-3">
+                    Create your account
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     PAGE 2 & 3: ASK US ANYTHING & OFFICE & GET UPDATES (Light Gray)
+     ============================================================ -->
+<section class="section-contact-updates bg-light-gray text-dark py-5" id="contact">
+    <div class="container-fluid px-lg-5 py-2">
+        <div class="row g-5">
+            <!-- Left: ASK US ANYTHING (Contact form) -->
+            <div class="col-lg-6">
+                <h3 class="fw-900 text-dark text-uppercase mb-1">ASK US ANYTHING</h3>
+                <p class="text-muted small mb-4">No account needed to send an inquiry.</p>
+
+                <form action="{{ url_for('contact') }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label text-dark fw-bold small text-uppercase mb-1 tracking-wide">NAME</label>
+                        <input type="text" name="name" class="form-control form-control-clean-light" value="{{ current_user.full_name if current_user else '' }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-dark fw-bold small text-uppercase mb-1 tracking-wide">EMAIL</label>
+                        <input type="email" name="email" class="form-control form-control-clean-light" value="{{ current_user.email if current_user else '' }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-dark fw-bold small text-uppercase mb-1 tracking-wide">MESSAGE</label>
+                        <textarea name="message" class="form-control form-control-clean-light" rows="4" required></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-black fw-bold px-4 py-2">
+                        Send inquiry
+                    </button>
+                </form>
+            </div>
+
+            <!-- Right: OFFICE & GET UPDATES -->
+            <div class="col-lg-5 offset-lg-1">
+                <!-- OFFICE block -->
+                <div class="mb-5">
+                    <h3 class="fw-900 text-dark text-uppercase mb-3">OFFICE</h3>
+                    <p class="text-dark mb-1 fw-medium">{{ site_settings.get('company_address') or 'Address not yet provided' }}</p>
+                    <p class="text-dark mb-1 fw-medium">{{ site_settings.get('company_phone') or 'Phone number not yet provided' }}</p>
+                    <p class="text-dark mb-0 fw-medium">{{ site_settings.get('company_email') or 'Email address not yet provided' }}</p>
+                </div>
+
+                <!-- GET UPDATES block -->
+                <div>
+                    <h3 class="fw-900 text-dark text-uppercase mb-3">GET UPDATES</h3>
+                    <form action="{{ url_for('subscribe') }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <label class="form-label text-dark fw-bold small text-uppercase mb-1 tracking-wide">EMAIL ADDRESS</label>
+                        <div class="d-flex gap-2">
+                            <input type="email" name="email" class="form-control form-control-clean-light" placeholder="name@example.com" required>
+                            <button type="submit" class="btn btn-yellow fw-bold px-4">
+                                Subscribe
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

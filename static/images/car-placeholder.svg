@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title">
+  <title id="title">Vehicle image unavailable</title>
+  <rect width="1200" height="800" fill="#111318"/>
+  <path d="M260 510h58l72-157c20-44 64-72 112-72h242c45 0 86 24 109 63l95 166h42c31 0 56 25 56 56v39H204v-39c0-31 25-56 56-56Z" fill="none" stroke="#707783" stroke-width="22" stroke-linejoin="round"/>
+  <circle cx="390" cy="580" r="63" fill="#111318" stroke="#707783" stroke-width="22"/>
+  <circle cx="865" cy="580" r="63" fill="#111318" stroke="#707783" stroke-width="22"/>
+  <path d="m420 355-63 138h510l-80-139c-13-23-38-37-64-37H480c-26 0-49 15-60 38Z" fill="#1d222b" stroke="#707783" stroke-width="12" stroke-linejoin="round"/>
+  <text x="600" y="700" fill="#aab1bc" font-family="Arial, sans-serif" font-size="30" text-anchor="middle">Vehicle photo coming soon</text>
+</svg>

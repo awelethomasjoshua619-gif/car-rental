@@ -1,0 +1,232 @@
+{% extends "admin/base_admin.html" %}
+
+{% block page_title %}Post New Fleet Vehicle{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h5 class="text-white mb-0"><i class="fa-solid fa-circle-plus text-primary me-2"></i> Vehicle Registration Form</h5>
+            <span class="text-white-50 small">Provide complete technical specifications and feature checklist.</span>
+        </div>
+        <a href="{{ url_for('admin_vehicles') }}" class="btn btn-outline-secondary rounded-pill px-3 btn-sm">
+            <i class="fa-solid fa-arrow-left me-1"></i> Back to Fleet
+        </a>
+    </div>
+
+    <form action="{{ url_for('admin_vehicle_add') }}" method="POST" enctype="multipart/form-data">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <!-- Basic Info -->
+        <h6 class="text-primary mb-3"><i class="fa-solid fa-id-badge me-1"></i> Basic Details</h6>
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <label class="form-label text-white-50 small">Vehicle Title / Model <span class="text-danger">*</span></label>
+                <input type="text" name="title" class="form-control" placeholder="e.g. BMW M4 Competition Coupe" required>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label text-white-50 small">Vehicle Brand <span class="text-danger">*</span></label>
+                <select name="brand_id" class="form-select" required>
+                    <option value="">Select Brand</option>
+                    {% for b in brands %}
+                        <option value="{{ b.id }}">{{ b.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label text-white-50 small">Rental Price Per Day ($) <span class="text-danger">*</span></label>
+                <input type="number" step="0.01" name="price_per_day" class="form-control" placeholder="150.00" required>
+            </div>
+
+            <div class="col-12">
+                <label class="form-label text-white-50 small">Vehicle Overview / Description</label>
+                <textarea name="overview" class="form-control" rows="3" placeholder="Detailed vehicle overview and driving impressions..."></textarea>
+            </div>
+        </div>
+
+        <!-- Technical Specs -->
+        <h6 class="text-primary mb-3"><i class="fa-solid fa-sliders me-1"></i> Technical Specifications</h6>
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <label class="form-label text-white-50 small">Fuel Type <span class="text-danger">*</span></label>
+                <select name="fuel_type" class="form-select" required>
+                    <option value="Petrol">Petrol</option>
+                    <option value="Diesel">Diesel</option>
+                    <option value="Electric">Electric</option>
+                    <option value="Hybrid">Hybrid</option>
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label text-white-50 small">Model Year <span class="text-danger">*</span></label>
+                <input type="number" name="model_year" class="form-control" value="2024" min="2000" max="2030" required>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label text-white-50 small">Seating Capacity <span class="text-danger">*</span></label>
+                <input type="number" name="seating_capacity" class="form-control" value="5" min="2" max="15" required>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label text-white-50 small">Transmission <span class="text-danger">*</span></label>
+                <select name="transmission" class="form-select" required>
+                    <option value="Automatic">Automatic</option>
+                    <option value="Manual">Manual</option>
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label text-white-50 small">Car Size / Category <span class="text-danger">*</span></label>
+                <select name="category" class="form-select" required>
+                    <option value="Small">Small (Compact, agile)</option>
+                    <option value="Premium" selected>Premium (Luxury, executive, sports)</option>
+                    <option value="Large">Large (SUV, family, luggage)</option>
+                </select>
+            </div>
+
+            <div class="col-12">
+                <h6 class="text-primary mb-1">Vehicle photo gallery</h6>
+                <p class="text-white-50 small mb-0">Add four photos of this exact vehicle: front, side, rear, and interior. Upload each file or paste its image URL.</p>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label text-white-50 small">Front photo</label>
+                <input type="file" name="image_file" class="form-control" accept=".png,.jpg,.jpeg,.webp,.gif">
+                <input type="url" name="image_url" class="form-control mt-2" placeholder="Or paste front image URL">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-white-50 small">Side photo</label>
+                <input type="file" name="image_side_file" class="form-control" accept=".png,.jpg,.jpeg,.webp,.gif">
+                <input type="url" name="image_side" class="form-control mt-2" placeholder="Or paste side image URL">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-white-50 small">Rear photo</label>
+                <input type="file" name="image_rear_file" class="form-control" accept=".png,.jpg,.jpeg,.webp,.gif">
+                <input type="url" name="image_rear" class="form-control mt-2" placeholder="Or paste rear image URL">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-white-50 small">Interior photo</label>
+                <input type="file" name="image_interior_file" class="form-control" accept=".png,.jpg,.jpeg,.webp,.gif">
+                <input type="url" name="image_interior" class="form-control mt-2" placeholder="Or paste interior image URL">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label text-white-50 small">Operational Status</label>
+                <select name="status" class="form-select">
+                    <option value="Available">Available</option>
+                    <option value="Booked">Booked</option>
+                    <option value="Maintenance">Maintenance</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Accessories & Features Checklist (As required by Aptech spec) -->
+        <h6 class="text-primary mb-3"><i class="fa-solid fa-list-check me-1"></i> Features & Accessories Checklist</h6>
+        <div class="row g-3 p-3 bg-dark bg-opacity-50 rounded-3 border border-secondary border-opacity-25 mb-4">
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="air_conditioner" id="f_ac" checked>
+                    <label class="form-check-label text-white small" for="f_ac">Air Conditioner</label>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="power_door_locks" id="f_pdl" checked>
+                    <label class="form-check-label text-white small" for="f_pdl">Power Door Locks</label>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="antilock_braking_system" id="f_abs" checked>
+                    <label class="form-check-label text-white small" for="f_abs">AntiLock Braking (ABS)</label>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="brake_assist" id="f_ba" checked>
+                    <label class="form-check-label text-white small" for="f_ba">Brake Assist</label>
+                </div>
+            </div>
+
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="power_steering" id="f_ps" checked>
+                    <label class="form-check-label text-white small" for="f_ps">Power Steering</label>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="driver_airbag" id="f_da" checked>
+                    <label class="form-check-label text-white small" for="f_da">Driver Airbag</label>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="passenger_airbag" id="f_pa" checked>
+                    <label class="form-check-label text-white small" for="f_pa">Passenger Airbag</label>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="power_windows" id="f_pw" checked>
+                    <label class="form-check-label text-white small" for="f_pw">Power Windows</label>
+                </div>
+            </div>
+
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="cd_player" id="f_cd">
+                    <label class="form-check-label text-white small" for="f_cd">CD/MP3 Player</label>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="central_locking" id="f_cl" checked>
+                    <label class="form-check-label text-white small" for="f_cl">Central Locking</label>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="crash_sensor" id="f_cs" checked>
+                    <label class="form-check-label text-white small" for="f_cs">Crash Sensor</label>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="leather_seats" id="f_ls">
+                    <label class="form-check-label text-white small" for="f_ls">Leather Seats</label>
+                </div>
+            </div>
+
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="bluetooth" id="f_bt" checked>
+                    <label class="form-check-label text-white small" for="f_bt">Bluetooth Audio</label>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="child_seat" id="f_ch">
+                    <label class="form-check-label text-white small" for="f_ch">Child Safety Seat</label>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="gps_navigation" id="f_gps" checked>
+                    <label class="form-check-label text-white small" for="f_gps">GPS Navigation</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-3">
+            <button type="submit" class="btn btn-primary px-5 py-2 rounded-pill fw-bold">
+                <i class="fa-solid fa-check me-1"></i> Save and Post Vehicle
+            </button>
+            <a href="{{ url_for('admin_vehicles') }}" class="btn btn-secondary px-4 py-2 rounded-pill">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

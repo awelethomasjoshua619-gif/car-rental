@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile - FAST CARS Rental Booking System{% endblock %}
+
+{% block content %}
+<div class="py-4 bg-dark bg-opacity-50 border-bottom border-secondary border-opacity-25 mb-4">
+    <div class="container">
+        <h1 class="h2 mb-1 text-white">Member Dashboard</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb small mb-0">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}" class="text-white-50 text-decoration-none">Home</a></li>
+                <li class="breadcrumb-item active text-primary" aria-current="page">Profile Settings</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <div class="row g-4">
+        <!-- Sidebar Navigation -->
+        <div class="col-lg-4">
+            <div class="content-card p-4 text-center mb-4">
+                <div class="rounded-circle bg-primary bg-opacity-25 border border-primary text-primary mx-auto d-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px; font-size: 2.2rem; font-weight: 700;">
+                    {{ current_user.full_name[0] }}
+                </div>
+                <h4 class="text-white mb-1">{{ current_user.full_name }}</h4>
+                <p class="text-white-50 small mb-3">{{ current_user.email }}</p>
+                <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 px-3 py-1">
+                    <i class="fa-solid fa-circle-check me-1"></i> Verified Account
+                </span>
+
+                <div class="row g-2 mt-4 pt-3 border-top border-secondary border-opacity-25 text-center">
+                    <div class="col-6">
+                        <div class="p-2 rounded bg-dark bg-opacity-50">
+                            <h4 class="text-primary mb-0 fw-bold">{{ bookings_count }}</h4>
+                            <span class="text-white-50 small">Bookings</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2 rounded bg-dark bg-opacity-50">
+                            <h4 class="text-primary mb-0 fw-bold">{{ testimonials_count }}</h4>
+                            <span class="text-white-50 small">Reviews</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Navigation Menu -->
+            <div class="content-card p-3">
+                <div class="list-group list-group-flush bg-transparent">
+                    <a href="{{ url_for('profile') }}" class="list-group-item list-group-item-action bg-transparent text-primary fw-semibold border-0 py-3 d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-user-pen"></i> Profile & Password
+                    </a>
+                    <a href="{{ url_for('my_bookings') }}" class="list-group-item list-group-item-action bg-transparent text-white-50 border-0 py-3 d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left text-primary"></i> Booking History
+                    </a>
+                    <a href="{{ url_for('testimonials') }}" class="list-group-item list-group-item-action bg-transparent text-white-50 border-0 py-3 d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-star text-warning"></i> My Testimonials
+                    </a>
+                    <form action="{{ url_for('logout') }}" method="POST" class="m-0">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="list-group-item list-group-item-action bg-transparent text-danger border-0 py-3 d-flex align-items-center gap-2 w-100">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Form Tabs -->
+        <div class="col-lg-8">
+            <div class="content-card p-4 p-md-5">
+                <ul class="nav nav-pills mb-4 gap-2" id="profileTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link {% if request.args.get('tab') != 'security' %}active{% endif %} rounded-pill px-4" id="info-tab" data-bs-toggle="tab" data-bs-target="#info-pane" type="button" role="tab">
+                            <i class="fa-solid fa-id-card me-1"></i> Personal Information
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link {% if request.args.get('tab') == 'security' %}active{% endif %} rounded-pill px-4" id="security-tab" data-bs-toggle="tab" data-bs-target="#security-pane" type="button" role="tab">
+                            <i class="fa-solid fa-shield-halved me-1"></i> Change Password
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="profileTabContent">
+                    <!-- Tab 1: Personal Info -->
+                    <div class="tab-pane fade {% if request.args.get('tab') != 'security' %}show active{% endif %}" id="info-pane" role="tabpanel">
+                        <h5 class="text-white mb-3">Update Profile Information</h5>
+                        <form action="{{ url_for('profile') }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="action" value="update_info">
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label text-white-50 small">Full Name <span class="text-danger">*</span></label>
+                                    <input type="text" name="full_name" value="{{ current_user.full_name }}" class="form-control" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-white-50 small">Email Address (Read-only)</label>
+                                    <input type="email" value="{{ current_user.email }}" class="form-control" readonly disabled>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-white-50 small">Phone Number</label>
+                                    <input type="text" name="phone" value="{{ current_user.phone or '' }}" class="form-control" placeholder="+1 (555) 000-0000">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-white-50 small">Street Address</label>
+                                    <input type="text" name="address" value="{{ current_user.address or '' }}" class="form-control" placeholder="123 Palm Ave">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-white-50 small">City</label>
+                                    <input type="text" name="city" value="{{ current_user.city or '' }}" class="form-control" placeholder="Your city">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-white-50 small">Country</label>
+                                    <input type="text" name="country" value="{{ current_user.country or '' }}" class="form-control" placeholder="United States">
+                                </div>
+
+                                <div class="col-12 mt-4">
+                                    <button type="submit" class="btn btn-primary px-4 py-2 rounded-pill fw-semibold">
+                                        <i class="fa-solid fa-floppy-disk me-1"></i> Save Changes
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Tab 2: Change Password -->
+                    <div class="tab-pane fade {% if request.args.get('tab') == 'security' %}show active{% endif %}" id="security-pane" role="tabpanel">
+                        <h5 class="text-white mb-3">Change Your Account Password</h5>
+                        <form action="{{ url_for('profile') }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="action" value="request_password_change_code">
+
+                            <div class="mb-3">
+                                <label class="form-label text-white-50 small">Current Password <span class="text-danger">*</span></label>
+                                <input type="password" name="old_password" class="form-control" placeholder="••••••••" required>
+                            </div>
+                            <button type="submit" class="btn btn-outline-primary px-4 py-2 rounded-pill fw-semibold mb-4">
+                                <i class="fa-solid fa-envelope me-1"></i> Email me a verification code
+                            </button>
+                        </form>
+                        <p class="small text-white-50">We will send a code to {{ current_user.email }}. Codes expire after 10 minutes.</p>
+                        <form action="{{ url_for('profile') }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="action" value="change_password">
+                            <div class="mb-3">
+                                <label class="form-label text-white-50 small">Email verification code</label>
+                                <input type="text" name="code" class="form-control" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-white-50 small">New Password (Min 8 chars) <span class="text-danger">*</span></label>
+                                <input type="password" name="new_password" class="form-control" placeholder="••••••••" minlength="8" autocomplete="new-password" required>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label text-white-50 small">Confirm New Password <span class="text-danger">*</span></label>
+                                <input type="password" name="confirm_password" class="form-control" placeholder="••••••••" minlength="8" autocomplete="new-password" required>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary px-4 py-2 rounded-pill fw-semibold">
+                                <i class="fa-solid fa-key me-1"></i> Update Password
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends "admin/base_admin.html" %}
+
+{% block page_title %}Manage Vehicle Brands{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Add Brand Form -->
+    <div class="col-lg-4">
+        <div class="admin-card">
+            <h5 class="text-white mb-3"><i class="fa-solid fa-plus-circle text-primary me-2"></i> Create Vehicle Brand</h5>
+            <form action="{{ url_for('admin_brands') }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="mb-3">
+                    <label class="form-label text-white-50 small">Brand Name <span class="text-danger">*</span></label>
+                    <input type="text" name="name" class="form-control" placeholder="e.g. Lamborghini, Ferrari, Volvo" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-semibold">
+                    <i class="fa-solid fa-check me-1"></i> Add Brand
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Brands List Table -->
+    <div class="col-lg-8">
+        <div class="admin-card">
+            <h5 class="text-white mb-3"><i class="fa-solid fa-list text-primary me-2"></i> Existing Brands ({{ brands|length }})</h5>
+
+            {% if brands %}
+                <div class="table-responsive">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Brand Name</th>
+                                <th>Active Vehicles</th>
+                                <th>Created Date</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for b in brands %}
+                                <tr>
+                                    <td>{{ b.id }}</td>
+                                    <td><strong class="text-white">{{ b.name }}</strong></td>
+                                    <td>
+                                        <span class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25 px-2 py-1">
+                                            {{ b.vehicle_count }} vehicles
+                                        </span>
+                                    </td>
+                                    <td class="text-white-50 small">{{ b.created_at[:10] }}</td>
+                                    <td class="text-end">
+                                        <div class="d-inline-flex gap-2">
+                                            <a href="{{ url_for('admin_brand_edit', brand_id=b.id) }}" class="btn btn-sm btn-outline-info rounded-pill px-3">
+                                                <i class="fa-solid fa-pen-to-square"></i> Edit
+                                            </a>
+                                            <form action="{{ url_for('admin_brand_delete', brand_id=b.id) }}" method="POST" onsubmit="return confirm('Delete brand {{ b.name }}?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                                                    <i class="fa-solid fa-trash"></i> Delete
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-white-50 text-center py-4 mb-0">No brands found. Create one above.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

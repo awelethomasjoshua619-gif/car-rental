@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Customer Testimonials - FAST CARS Rental Booking System{% endblock %}
+
+{% block content %}
+<div class="py-4 bg-dark bg-opacity-50 border-bottom border-secondary border-opacity-25 mb-4">
+    <div class="container">
+        <h1 class="h2 mb-1 text-white">Client Testimonials & Reviews</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb small mb-0">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}" class="text-white-50 text-decoration-none">Home</a></li>
+                <li class="breadcrumb-item active text-primary" aria-current="page">Testimonials</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <div class="row g-4">
+        <!-- Post Testimonial Section -->
+        <div class="col-lg-4">
+            <div class="content-card p-4 sticky-top" style="top: 90px;">
+                <h5 class="text-white mb-2"><i class="fa-solid fa-pen-nib text-primary me-2"></i> Share Your Experience</h5>
+                <p class="text-white-50 small mb-4">Tell us about your rental journey with FAST CARS.</p>
+
+                {% if current_user %}
+                    <form action="{{ url_for('testimonials') }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-3">
+                            <label class="form-label text-white-50 small">Your Rating</label>
+                            <input type="hidden" name="rating" id="selected_rating" value="5">
+                            <div class="star-rating fs-4 cursor-pointer">
+                                <i class="fa-solid fa-star star-picker-icon text-warning me-1 cursor-pointer" data-value="1"></i>
+                                <i class="fa-solid fa-star star-picker-icon text-warning me-1 cursor-pointer" data-value="2"></i>
+                                <i class="fa-solid fa-star star-picker-icon text-warning me-1 cursor-pointer" data-value="3"></i>
+                                <i class="fa-solid fa-star star-picker-icon text-warning me-1 cursor-pointer" data-value="4"></i>
+                                <i class="fa-solid fa-star star-picker-icon text-warning cursor-pointer" data-value="5"></i>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-white-50 small">Headline / Title</label>
+                            <input type="text" name="title" class="form-control" placeholder="e.g. Flawless weekend roadtrip" required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label text-white-50 small">Your Feedback Review <span class="text-danger">*</span></label>
+                            <textarea name="content" class="form-control" rows="4" placeholder="How was the car condition, customer service, and overall booking process?" required></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold rounded-pill">
+                            <i class="fa-solid fa-paper-plane me-1"></i> Submit Review
+                        </button>
+                    </form>
+                {% else %}
+                    <div class="p-4 bg-dark bg-opacity-50 rounded-3 border border-secondary border-opacity-25 text-center">
+                        <i class="fa-solid fa-comment-dots text-primary fs-2 mb-2"></i>
+                        <h6 class="text-white">Logged In Users Only</h6>
+                        <p class="text-white-50 small mb-3">Please sign in to your registered account to share a review.</p>
+                        <a href="{{ url_for('login', next=request.path) }}" class="btn btn-primary btn-sm rounded-pill px-4">
+                            Sign In to Review
+                        </a>
+                    </div>
+                {% endif %}
+
+                <!-- If user is logged in, show their own submissions -->
+                {% if my_testimonials %}
+                    <div class="mt-4 pt-4 border-top border-secondary border-opacity-25">
+                        <h6 class="text-white mb-3">Your Submitted Reviews ({{ my_testimonials|length }})</h6>
+                        {% for mt in my_testimonials %}
+                            <div class="p-3 mb-2 rounded bg-dark bg-opacity-50 border border-secondary border-opacity-25 small">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <strong class="text-white">{{ mt.title }}</strong>
+                                    {% if mt.status == 1 %}
+                                        <span class="badge bg-success bg-opacity-25 text-success">Approved</span>
+                                    {% else %}
+                                        <span class="badge bg-warning bg-opacity-25 text-warning">Pending Review</span>
+                                    {% endif %}
+                                </div>
+                                <p class="text-white-50 mb-0">"{{ mt.content }}"</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Approved Reviews Feed -->
+        <div class="col-lg-8">
+            <h4 class="text-white mb-4">Driver Testimonials ({{ approved_testimonials|length }})</h4>
+            
+            {% if approved_testimonials %}
+                <div class="row g-4">
+                    {% for t in approved_testimonials %}
+                        <div class="col-md-6">
+                            <div class="testimonial-card">
+                                <i class="fa-solid fa-quote-right quote-icon"></i>
+                                <div class="star-rating">
+                                    {% for i in range(t.rating) %}
+                                        <i class="fa-solid fa-star"></i>
+                                    {% endfor %}
+                                </div>
+                                <h6 class="fw-bold text-white mb-2">{{ t.title }}</h6>
+                                <p class="text-white-50 small mb-4">"{{ t.content }}"</p>
+                                <div class="d-flex align-items-center gap-3 pt-3 border-top border-secondary border-opacity-25">
+                                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px;">
+                                        {{ t.user_name[0] }}
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 text-white small fw-bold">{{ t.user_name }}</h6>
+                                        <span class="text-white-50 small">{{ t.user_city or 'Verified Customer' }} &bull; {{ t.created_at[:10] }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="content-card text-center py-5">
+                    <i class="fa-solid fa-comments text-white-50 display-4 mb-3"></i>
+                    <h5 class="text-white">Be the First to Leave a Testimonial!</h5>
+                    <p class="text-white-50 small">No published reviews yet. Submit yours using the form.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

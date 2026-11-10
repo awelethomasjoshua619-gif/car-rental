@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+
+{% block title %}{{ car.title }} - FAST CARS Rental Booking System{% endblock %}
+
+{% block content %}
+{% set primary_angle = gallery[0] if gallery else {'src': car.image_url, 'label': 'Front', 'alt': car.title ~ ' front view'} %}
+<div class="py-4 bg-dark bg-opacity-50 border-bottom border-secondary border-opacity-25 mb-4">
+    <div class="container">
+        <div class="d-flex flex-wrap justify-content-between align-items-center">
+            <div>
+                <span class="badge bg-primary px-3 py-1 mb-2">{{ car.brand_name }}</span>
+                <h1 class="h2 mb-0 text-white">{{ car.title }}</h1>
+            </div>
+            <div class="text-md-end mt-3 mt-md-0">
+                <span class="text-white-50 small d-block">Rental Rate</span>
+                <span class="h2 text-primary fw-bold mb-0">${{ "%.2f"|format(car.price_per_day) }}</span>
+                <span class="text-white-50 small"> / day</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <div class="row g-4">
+        <!-- Vehicle Visual & Specifications -->
+        <div class="col-lg-7">
+            <!-- Interactive Multi-Angle Showcase -->
+            <div class="content-card p-3 mb-4 overflow-hidden" id="vehicle-gallery" aria-label="Photo gallery for {{ car.title }}">
+                <!-- Large Stage Image -->
+                <div class="vehicle-gallery-stage rounded-2 overflow-hidden position-relative">
+                    <img id="mainVehicleImage" 
+                         src="{{ primary_angle.src }}" 
+                         alt="{{ primary_angle.alt }}" 
+                         class="w-100 h-100 object-fit-cover transition-img" 
+                         data-current-index="0">
+
+                    <!-- Angle Label Badge -->
+                    <span id="activeAngleBadge" class="position-absolute top-0 start-0 m-3 badge bg-black bg-opacity-75 text-white border border-secondary px-3 py-2 small fw-bold text-uppercase">
+                        <i class="fa-solid fa-camera me-1 text-white"></i> <span id="angleText">{{ primary_angle.label }} view</span>
+                    </span>
+
+                    <!-- Availability Status Badge -->
+                    <span class="position-absolute top-0 end-0 m-3 badge {% if car.status == 'Available' %}bg-black border border-white text-white{% else %}bg-dark border border-secondary text-white-50{% endif %} px-3 py-2 small fw-bold">
+                        &bull; {{ car.status }}
+                    </span>
+
+                    <!-- Prev/Next Angle Navigation Overlays -->
+                    <button type="button" class="angle-nav-btn prev-btn position-absolute top-50 start-0 translate-middle-y ms-2 btn btn-black btn-sm text-white border border-secondary p-2" onclick="changeVehicleAngle(-1)" title="Previous Angle">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <button type="button" class="angle-nav-btn next-btn position-absolute top-50 end-0 translate-middle-y me-2 btn btn-black btn-sm text-white border border-secondary p-2" onclick="changeVehicleAngle(1)" title="Next Angle">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+
+                <!-- Angle Thumbnails Bar -->
+                <div class="row g-2 mt-2" id="angleThumbnails" aria-label="Choose a {{ car.title }} photo angle">
+                    {% for angle in gallery %}
+                    <div class="col-{{ 12 // gallery|length }}">
+                        <button type="button" class="angle-thumb{% if loop.first %} active{% endif %}"
+                                data-image-index="{{ loop.index0 }}" data-image-url="{{ angle.src }}"
+                                data-image-label="{{ angle.label }}" aria-label="Show {{ car.title }} {{ angle.label|lower }} view"
+                                aria-pressed="{{ 'true' if loop.first else 'false' }}" aria-controls="mainVehicleImage">
+                            <img src="{{ angle.src }}" alt="{{ angle.alt }}" class="w-100 object-fit-cover" loading="lazy">
+                            <span class="angle-thumb-label">{{ angle.label }}</span>
+                        </button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if not car.image_interior %}
+                <div class="alert alert-secondary mt-3 mb-0" role="status">
+                    <i class="fa-solid fa-camera me-2" aria-hidden="true"></i>
+                    A verified interior photo for this specific vehicle has not been added yet. Ask the administrator to upload it under Admin → Vehicles → Edit Vehicle.
+                </div>
+                {% endif %}
+                <div class="text-center mt-2">
+                    <span class="text-white-50 small"><i class="fa-solid fa-arrows-left-right me-1 text-white"></i> Click any thumbnail or use your keyboard arrow keys (&larr; / &rarr;) to inspect different angles</span>
+                </div>
+            </div>
+
+            <!-- Key Specifications Grid -->
+            <div class="content-card p-4 mb-4">
+                <h5 class="text-white mb-3"><i class="fa-solid fa-sliders text-primary me-2"></i> Technical Specifications</h5>
+                <div class="row g-3">
+                    <div class="col-sm-4 col-6">
+                        <div class="p-3 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25 text-center">
+                            <i class="fa-solid fa-calendar-days text-primary fs-4 mb-1"></i>
+                            <div class="text-white-50 small">Model Year</div>
+                            <strong class="text-white fs-6">{{ car.model_year }}</strong>
+                        </div>
+                    </div>
+                    <div class="col-sm-4 col-6">
+                        <div class="p-3 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25 text-center">
+                            <i class="fa-solid fa-gas-pump text-primary fs-4 mb-1"></i>
+                            <div class="text-white-50 small">Fuel Type</div>
+                            <strong class="text-white fs-6">{{ car.fuel_type }}</strong>
+                        </div>
+                    </div>
+                    <div class="col-sm-4 col-6">
+                        <div class="p-3 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25 text-center">
+                            <i class="fa-solid fa-gear text-primary fs-4 mb-1"></i>
+                            <div class="text-white-50 small">Transmission</div>
+                            <strong class="text-white fs-6">{{ car.transmission }}</strong>
+                        </div>
+                    </div>
+                    <div class="col-sm-4 col-6">
+                        <div class="p-3 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25 text-center">
+                            <i class="fa-solid fa-users text-primary fs-4 mb-1"></i>
+                            <div class="text-white-50 small">Seating Capacity</div>
+                            <strong class="text-white fs-6">{{ car.seating_capacity }} Persons</strong>
+                        </div>
+                    </div>
+                    <div class="col-sm-4 col-6">
+                        <div class="p-3 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25 text-center">
+                            <i class="fa-solid fa-copyright text-primary fs-4 mb-1"></i>
+                            <div class="text-white-50 small">Brand Make</div>
+                            <strong class="text-white fs-6">{{ car.brand_name }}</strong>
+                        </div>
+                    </div>
+                    <div class="col-sm-4 col-6">
+                        <div class="p-3 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25 text-center">
+                            <i class="fa-solid fa-shield-halved text-primary fs-4 mb-1"></i>
+                            <div class="text-white-50 small">Insurance Status</div>
+                            <strong class="text-white fs-6">Comprehensive</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overview -->
+            <div class="content-card p-4 mb-4">
+                <h5 class="text-white mb-3"><i class="fa-solid fa-circle-info text-primary me-2"></i> Vehicle Overview</h5>
+                <p class="text-white-50 leading-relaxed mb-0">
+                    {{ car.overview }}
+                </p>
+            </div>
+
+            <!-- Equipment & Accessories Checklist -->
+            <div class="content-card p-4">
+                <h5 class="text-white mb-3"><i class="fa-solid fa-list-check text-primary me-2"></i> Accessories & Features</h5>
+                <div class="row g-2">
+                    {% set features = [
+                        ('Air Conditioner', car.air_conditioner),
+                        ('Power Door Locks', car.power_door_locks),
+                        ('Anti-Lock Braking System (ABS)', car.antilock_braking_system),
+                        ('Brake Assist', car.brake_assist),
+                        ('Power Steering', car.power_steering),
+                        ('Driver Airbag', car.driver_airbag),
+                        ('Passenger Airbag', car.passenger_airbag),
+                        ('Power Windows', car.power_windows),
+                        ('CD/MP3 Audio Player', car.cd_player),
+                        ('Central Locking', car.central_locking),
+                        ('Crash Sensor', car.crash_sensor),
+                        ('Leather Seats', car.leather_seats),
+                        ('Bluetooth Connectivity', car.bluetooth),
+                        ('Child Safety Seat', car.child_seat),
+                        ('GPS Navigation System', car.gps_navigation)
+                    ] %}
+                    {% for name, val in features %}
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-center gap-2 p-2 rounded-2 {% if val %}text-white{% else %}text-white-50 opacity-50{% endif %}">
+                                {% if val %}
+                                    <i class="fa-solid fa-circle-check text-success fs-5"></i>
+                                {% else %}
+                                    <i class="fa-solid fa-circle-xmark text-danger fs-5"></i>
+                                {% endif %}
+                                <span class="small">{{ name }}</span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Booking Calculator Form Sidebar -->
+        <div class="col-lg-5">
+            <div class="content-card p-4 sticky-top" style="top: 90px;" id="booking-box">
+                <h4 class="text-white mb-1 d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-calendar-check text-primary"></i> Reserve This Car
+                </h4>
+                <p class="text-white-50 small mb-4">Send a reservation request for staff confirmation. No online payment is collected.</p>
+
+                <!-- Daily rate hidden element for JS calculator -->
+                <div id="daily_rate_val" data-rate="{{ car.price_per_day }}"></div>
+
+                {% if current_user %}
+                    <form action="{{ url_for('book_car', vehicle_id=car.id) }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-3">
+                            <label class="form-label small text-white-50">Pick-up Date <span class="text-danger">*</span></label>
+                            <input type="date" id="booking_from_date" name="from_date" min="{{ today }}" class="form-control" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small text-white-50">Return Date <span class="text-danger">*</span></label>
+                            <input type="date" id="booking_to_date" name="to_date" min="{{ today }}" class="form-control" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small text-white-50">Pick-up Location <span class="text-danger">*</span></label>
+                            <input type="text" name="pickup_location" class="form-control" autocomplete="street-address" placeholder="Enter pick-up address or location" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small text-white-50">Drop-off Location</label>
+                            <input type="text" name="dropoff_location" class="form-control" placeholder="Leave blank to use pick-up location">
+                        </div>
+
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="driver_needed" name="driver_needed" value="1">
+                            <label class="form-check-label text-white small" for="driver_needed">
+                                Request Professional Chauffeur Driver (+$35 / day)
+                            </label>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small text-white-50">Special Requests / Flight Number (Optional)</label>
+                            <textarea name="message" class="form-control" rows="2" placeholder="e.g. Flight arrival time, child seat placement..."></textarea>
+                        </div>
+
+                        <!-- Live Price Summary Widget -->
+                        <div class="p-3 rounded-3 bg-dark bg-opacity-75 border border-secondary border-opacity-25 mb-4">
+                            <div class="d-flex justify-content-between text-white-50 small mb-1">
+                                <span>Daily Rate:</span>
+                                <span class="text-white">${{ "%.2f"|format(car.price_per_day) }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-white-50 small mb-1">
+                                <span>Rental Duration:</span>
+                                <span class="text-white" id="calc_days">1 day</span>
+                            </div>
+                            <hr class="border-secondary border-opacity-50 my-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-bold text-white">Estimated Total:</span>
+                                <span class="h4 text-primary fw-bold mb-0" id="calc_total_price">${{ "%.2f"|format(car.price_per_day) }}</span>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-pill shadow">
+                            <i class="fa-solid fa-paper-plane me-2"></i> Send Booking Request
+                        </button>
+                    </form>
+                {% else %}
+                    <!-- Guest Login Prompt -->
+                    <div class="text-center py-4 bg-dark bg-opacity-50 p-4 rounded-3 border border-secondary border-opacity-25">
+                        <i class="fa-solid fa-lock text-primary fs-1 mb-3"></i>
+                        <h5 class="text-white">Sign In to Complete Booking</h5>
+                        <p class="text-white-50 small mb-4">
+                            You must be logged in as a registered user to reserve vehicles and manage your booking history.
+                        </p>
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('login', next=request.path) }}" class="btn btn-primary rounded-pill py-2 fw-semibold">
+                                <i class="fa-solid fa-right-to-bracket me-1"></i> Sign In to Book
+                            </a>
+                            <a href="{{ url_for('register') }}" class="btn btn-outline-light rounded-pill py-2">
+                                <i class="fa-solid fa-user-plus me-1"></i> Create New Account
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <div class="mt-4 pt-3 border-top border-secondary border-opacity-25 text-white-50 small">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <i class="fa-solid fa-gas-pump text-primary"></i> <strong>Fuel Policy:</strong> Full-to-Full
+                    </div>
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <i class="fa-solid fa-gauge-high text-primary"></i> <strong>Mileage:</strong> 200 miles / day included
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-shield text-primary"></i> <strong>Insurance:</strong> Standard collision cover included
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Similar Vehicles -->
+    {% if similar_cars %}
+    <div class="mt-5 pt-4 border-top border-secondary border-opacity-25">
+        <h4 class="text-white mb-4">You May Also Like</h4>
+        <div class="row g-4">
+            {% for sim in similar_cars %}
+                <div class="col-md-4">
+                    <div class="car-card">
+                        <div class="car-card-img-wrapper" style="height: 180px;">
+                            <span class="car-brand-badge">{{ sim.brand_name }}</span>
+                            <a class="car-card-image-link" href="{{ url_for('car_details', vehicle_id=sim.id) }}#vehicle-gallery" aria-label="View {{ sim.title }} photos and details">
+                                <img src="{{ sim.image_url }}" alt="{{ sim.title }}" class="car-card-img">
+                            </a>
+                            <div class="car-price-badge">
+                                <span>${{ "%.0f"|format(sim.price_per_day) }}</span> / day
+                            </div>
+                        </div>
+                        <div class="car-body p-3">
+                            <h6 class="text-white text-truncate mb-1">{{ sim.title }}</h6>
+                            <span class="small text-white-50 d-block mb-3">{{ sim.fuel_type }} &bull; {{ sim.transmission }}</span>
+                            <a href="{{ url_for('car_details', vehicle_id=sim.id) }}" class="btn btn-outline-primary btn-sm rounded-pill w-100">
+                                View Details
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

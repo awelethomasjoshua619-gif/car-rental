@@ -1,0 +1,13 @@
+.git
+.gitignore
+.env
+.venv
+venv
+__pycache__
+*.py[cod]
+*.db
+*.sqlite
+*.sqlite3
+fastcars_backup.sql
+static/uploads/*
+!static/uploads/.gitkeep
