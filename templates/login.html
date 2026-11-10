@@ -45,19 +45,6 @@
                     </button>
                 </form>
 
-                {% if demo_mode %}
-                <!-- Demo quick autofill helper -->
-                <div class="p-3 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25 mb-4 text-center">
-                    <div class="small text-white-50 mb-1">Quick Demo User:</div>
-                    <code class="text-info small">john@example.com / user123</code>
-                    <div class="mt-2">
-                        <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-3 text-white-50" onclick="document.getElementById('login_email').value='john@example.com'; document.getElementById('login_password').value='user123';">
-                            Fill Demo Account
-                        </button>
-                    </div>
-                </div>
-                {% endif %}
-
                 <div class="text-center text-white-50 small">
                     Don't have an account yet? 
                     <a href="{{ url_for('register') }}" class="text-primary fw-semibold text-decoration-none">Register here</a>

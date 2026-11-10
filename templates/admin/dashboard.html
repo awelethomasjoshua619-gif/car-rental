@@ -130,7 +130,7 @@
                             </td>
                             <td>{{ b.vehicle_title }}</td>
                             <td>{{ b.from_date }} &rarr; {{ b.to_date }} ({{ b.total_days }}d)</td>
-                            <td><strong class="text-white">${{ "%.2f"|format(b.total_price) }}</strong></td>
+                            <td><strong class="text-white">{{ site_settings.get('currency_code') or 'Currency not set' }} {{ "%.2f"|format(b.total_price) }}</strong></td>
                             <td>
                                 {% if b.status == 'Confirmed' %}
                                     <span class="badge badge-confirmed">Confirmed</span>

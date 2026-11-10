@@ -64,6 +64,29 @@ def init_db():
         "WHERE id = 5 AND title = 'Porsche 911 Carrera GTS' "
         "AND image_url = '/static/images/cars/car_5_front.jpg'"
     )
+    # Remove fictional business contact details and sample reviews from the
+    # public site on existing development databases as well as fresh installs.
+    conn.execute("UPDATE site_settings SET value = '' WHERE key = 'company_phone' AND value LIKE '%555-FAST%'")
+    conn.execute("UPDATE site_settings SET value = '' WHERE key = 'company_email' AND value = 'support@fastcars.com'")
+    conn.execute("UPDATE site_settings SET value = '' WHERE key = 'company_address' AND value LIKE '%Evergreen Terrace%'")
+    conn.execute("UPDATE site_settings SET value = '' WHERE key = 'working_hours' AND value LIKE '%8:00 AM - 8:00 PM%'")
+    conn.execute("UPDATE site_settings SET value = ? WHERE key = 'about_us' AND value LIKE '%premier car rental partner%'",
+                 ('Browse the available vehicles and send a reservation request for staff review.',))
+    conn.execute("UPDATE site_settings SET value = ? WHERE key = 'terms_conditions' AND value LIKE '%200 miles/day%'",
+                 ('A reservation is a request and is not confirmed until FAST CARS staff approve it. Before pickup, confirm the rental price, driver requirements, deposit, cancellation terms, fuel, mileage, and insurance directly with staff.',))
+    conn.execute("UPDATE site_settings SET value = ? WHERE key = 'privacy_policy' AND value LIKE '%cryptographically secured%'",
+                 ('Privacy policy is being prepared. Review and publish it before collecting customer information.',))
+    conn.execute("UPDATE testimonials SET status = 0 WHERE content IN (?, ?, ?)", (
+        'Rented the BMW M4 for a weekend trip to Napa Valley. The car was spotless, pick-up took less than 3 minutes, and customer support was exceptional. Highly recommended!',
+        'FAST CARS lived up to its name. The Mercedes S-Class was like gliding on a cloud. Outstanding service from start to finish.',
+        'Booked the Tesla Model S Plaid for a business convention. Supercharging network was easy and the car performance was out of this world.',
+    ))
+    demo_admin_email = os.environ.get('DEMO_ADMIN_EMAIL', '').strip().lower()
+    if '@' in demo_admin_email and '.' in demo_admin_email.rsplit('@', 1)[-1]:
+        conn.execute(
+            "UPDATE admins SET email = ? WHERE username = 'admin' AND email = 'awelethomasjoshua619@gmail.com'",
+            (demo_admin_email,),
+        )
     conn.commit()
     if os.environ.get('APP_ENV', 'development').lower() != 'production':
         seed_data(conn)
@@ -92,10 +115,13 @@ def seed_data(conn):
     # 1. Admin Seed
     cursor.execute("SELECT COUNT(*) FROM admins")
     if cursor.fetchone()[0] == 0:
+        configured_admin_email = os.environ.get('DEMO_ADMIN_EMAIL', '').strip().lower()
+        if '@' not in configured_admin_email or '.' not in configured_admin_email.rsplit('@', 1)[-1]:
+            configured_admin_email = 'awelethomasjoshua619@gmail.com'
         cursor.execute(
             """INSERT INTO admins (username, email, password_hash, full_name)
                VALUES (?, ?, ?, ?)""",
-            ('admin', 'awelethomasjoshua619@gmail.com', generate_password_hash('admin123'), 'FAST CARS Administrator')
+            ('admin', configured_admin_email, generate_password_hash('admin123'), 'FAST CARS Administrator')
         )
 
     # 2. Site Settings Seed
@@ -103,28 +129,15 @@ def seed_data(conn):
     if cursor.fetchone()[0] == 0:
         default_settings = {
             'company_name': 'FAST CARS Rental & Luxury Fleet',
-            'company_phone': '+1 (800) 555-FAST (3278)',
-            'company_email': 'support@fastcars.com',
-            'company_address': '742 Evergreen Terrace, Auto Plaza Suite 100, Los Angeles, CA 90001',
-            'working_hours': 'Mon - Sat: 8:00 AM - 8:00 PM | Sun: 9:00 AM - 5:00 PM',
-            'about_us': (
-                "Welcome to FAST CARS, your premier car rental partner. Founded with a vision to revolutionize the car rental experience, "
-                "we provide an extensive fleet ranging from economical city cruisers to high-end executive sedans and luxury SUVs. "
-                "Our mission is to deliver exceptional customer service, transparent upfront pricing with zero hidden fees, and modern well-maintained vehicles. "
-                "Whether you need a daily commute, an unforgettable road trip, or prestigious business travel, FAST CARS puts you in the driver's seat with confidence."
-            ),
-            'terms_conditions': (
-                "1. Driver Requirements: All drivers must be at least 21 years of age and hold a valid full driver's license.\n"
-                "2. Security Deposit: A refundable deposit or pre-authorization is required upon vehicle pick-up.\n"
-                "3. Fuel Policy: Vehicles are provided with a full tank and should be returned with a full tank, or refueling charges will apply.\n"
-                "4. Cancellation: Free cancellation is available up to 24 hours prior to the scheduled pick-up time.\n"
-                "5. Mileage: Standard rentals include 200 miles/day. Additional mileage is charged at standard per-mile rates."
-            ),
-            'privacy_policy': (
-                "FAST CARS respects and protects your personal privacy. We collect only necessary contact and booking details "
-                "to fulfill your reservation requests. We never sell, lease, or share your private information with unauthorized third parties. "
-                "All payment details and passwords are cryptographically secured using industry-standard protocols."
-            )
+            'company_phone': '',
+            'company_email': '',
+            'company_address': '',
+            'working_hours': '',
+            'currency_code': '',
+            'chauffeur_fee_per_day': '',
+            'about_us': 'Browse the available vehicles and send a reservation request for staff review.',
+            'terms_conditions': 'A reservation is a request and is not confirmed until FAST CARS staff approve it. Before pickup, confirm the rental price, driver requirements, deposit, cancellation terms, fuel, mileage, and insurance directly with staff.',
+            'privacy_policy': 'Privacy policy is being prepared. Review and publish it before collecting customer information.',
         }
         for k, v in default_settings.items():
             cursor.execute("INSERT OR REPLACE INTO site_settings (key, value) VALUES (?, ?)", (k, v))
@@ -327,9 +340,9 @@ def seed_data(conn):
         user_row = cursor.fetchone()
         user_id = user_row[0] if user_row else 1
         testimonials = [
-            (user_id, 5, "Seamless rental experience!", "Rented the BMW M4 for a weekend trip to Napa Valley. The car was spotless, pick-up took less than 3 minutes, and customer support was exceptional. Highly recommended!", 1),
-            (user_id, 5, "Unbeatable luxury and service", "FAST CARS lived up to its name. The Mercedes S-Class was like gliding on a cloud. Outstanding service from start to finish.", 1),
-            (user_id, 4, "Smooth and eco-friendly", "Booked the Tesla Model S Plaid for a business convention. Supercharging network was easy and the car performance was out of this world.", 1)
+            (user_id, 5, "Seamless rental experience!", "Rented the BMW M4 for a weekend trip to Napa Valley. The car was spotless, pick-up took less than 3 minutes, and customer support was exceptional. Highly recommended!", 0),
+            (user_id, 5, "Unbeatable luxury and service", "FAST CARS lived up to its name. The Mercedes S-Class was like gliding on a cloud. Outstanding service from start to finish.", 0),
+            (user_id, 4, "Smooth and eco-friendly", "Booked the Tesla Model S Plaid for a business convention. Supercharging network was easy and the car performance was out of this world.", 0)
         ]
         for t in testimonials:
             cursor.execute("INSERT INTO testimonials (user_id, rating, title, content, status) VALUES (?, ?, ?, ?, ?)", t)

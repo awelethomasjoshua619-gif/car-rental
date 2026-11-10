@@ -43,7 +43,7 @@
                                 </div>
                             </td>
                             <td><span class="badge bg-secondary">{{ v.brand_name }}</span></td>
-                            <td><strong class="text-primary fs-6">${{ "%.2f"|format(v.price_per_day) }}</strong></td>
+                            <td><strong class="text-primary fs-6">{{ site_settings.get('currency_code') or 'Currency not set' }} {{ "%.2f"|format(v.price_per_day) }}</strong></td>
                             <td class="small text-white-50">
                                 {{ v.seating_capacity }} Seats &bull; {{ v.transmission }}
                             </td>

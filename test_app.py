@@ -39,6 +39,12 @@ class FastCarsTestCase(unittest.TestCase):
         for ep in endpoints:
             response = self.client.get(ep)
             self.assertEqual(response.status_code, 200, f"Failed on endpoint {ep}")
+        home = self.client.get('/')
+        self.assertNotIn(b'Evergreen Terrace', home.data)
+        self.assertNotIn(b'support@fastcars.com', home.data)
+        self.assertNotIn(b'Booked the Tesla Model S Plaid for a business convention', home.data)
+        self.assertNotIn(b'user123', self.client.get('/login').data)
+        self.assertNotIn(b'admin123', self.client.get('/admin/login').data)
 
     def test_02_car_details_page(self):
         """Test car details endpoint for car ID 1."""
@@ -64,6 +70,7 @@ class FastCarsTestCase(unittest.TestCase):
             res = self.client.post('/register', data=reg_data, follow_redirects=True)
         self.assertEqual(res.status_code, 200)
         self.assertIn(b'Verify your email', res.data)
+        self.assertTrue(send_email.call_args.kwargs['auth_only'])
         import re
         code_match = re.search(r'verification code is (\d{6})', send_email.call_args.args[3])
         self.assertIsNotNone(code_match)
@@ -95,14 +102,15 @@ class FastCarsTestCase(unittest.TestCase):
         import re
         code_match = re.search(r'reset code is (\d{6})', send_email.call_args.args[3])
         self.assertIsNotNone(code_match)
-        res = self.client.post('/reset-password', data={
-            'email': 'john@example.com',
-            'code': code_match.group(1),
-            'new_password': 'newpassword123',
-            'confirm_password': 'newpassword123'
-        }, follow_redirects=True)
+        with patch('app.send_templated_email'):
+            res = self.client.post('/reset-password', data={
+                'email': 'john@example.com',
+                'code': code_match.group(1),
+                'new_password': 'newpassword123',
+                'confirm_password': 'newpassword123'
+            }, follow_redirects=True)
         self.assertEqual(res.status_code, 200)
-        self.assertIn(b'successfully reset', res.data)
+        self.assertIn(b'password has been reset', res.data)
 
         # Verify login with new password works
         res = self.client.post('/login', data={'email': 'john@example.com', 'password': 'newpassword123'}, follow_redirects=True)
@@ -126,9 +134,11 @@ class FastCarsTestCase(unittest.TestCase):
                 'driver_needed': '1',
                 'message': 'Please have water bottles ready.'
             }
-            res = self.client.post('/cars/1/book', data=booking_data, follow_redirects=True)
+            with patch('app.send_templated_email') as send_email:
+                res = self.client.post('/cars/1/book', data=booking_data, follow_redirects=True)
             self.assertEqual(res.status_code, 200)
             self.assertIn(b'Booking submitted successfully', res.data)
+            self.assertEqual(send_email.call_count, 2)
 
             # View booking history
             res = self.client.get('/my-bookings')
@@ -163,7 +173,8 @@ class FastCarsTestCase(unittest.TestCase):
             self.assertEqual(res.status_code, 200)
             self.assertIn(b'Manage Customer Bookings', res.data)
 
-            res = self.client.post('/admin/bookings/1/status', data={'status': 'Confirmed', 'admin_remark': 'Key ready at desk'}, follow_redirects=True)
+            with patch('app.send_templated_email'):
+                res = self.client.post('/admin/bookings/1/status', data={'status': 'Confirmed', 'admin_remark': 'Key ready at desk'}, follow_redirects=True)
             self.assertEqual(res.status_code, 200)
             self.assertIn(b'Confirmed', res.data)
 
@@ -211,12 +222,13 @@ class FastCarsTestCase(unittest.TestCase):
             import re
             match = re.search(rb'name=\"csrf_token\" value=\"([^\"]+)\"', page.data)
             self.assertIsNotNone(match)
-            with patch('app.send_templated_email'):
+            with patch('app.send_templated_email') as send_email:
                 response = client.post('/contact', data={
                     'csrf_token': match.group(1).decode(),
                     'name': 'Test', 'email': 'test@example.com', 'message': 'Valid token'
                 })
             self.assertEqual(response.status_code, 302)
+            self.assertEqual(send_email.call_count, 2)
         finally:
             app.config['WTF_CSRF_ENABLED'] = False
 
@@ -241,9 +253,10 @@ class FastCarsTestCase(unittest.TestCase):
             self.client.post('/register', data=register_data)
         import re
         verification_code = re.search(r'verification code is (\d{6})', send_email.call_args.args[3]).group(1)
-        self.client.post('/verify-email', data={
-            'email': register_data['email'], 'code': verification_code, 'action': 'verify'
-        })
+        with patch('app.send_templated_email'):
+            self.client.post('/verify-email', data={
+                'email': register_data['email'], 'code': verification_code, 'action': 'verify'
+            })
         with app.app_context():
             before = get_db().execute('SELECT COUNT(*) FROM bookings').fetchone()[0]
         response = self.client.post(f"/cars/{booking['vehicle_id']}/book", data={
@@ -256,6 +269,47 @@ class FastCarsTestCase(unittest.TestCase):
         with app.app_context():
             after = get_db().execute('SELECT COUNT(*) FROM bookings').fetchone()[0]
         self.assertEqual(before, after)
+
+    def test_08b_same_day_booking_occupies_one_day(self):
+        """Same-day reservations reserve the car for one rental day."""
+        pickup = date.today() + timedelta(days=90)
+        booking_data = {
+            'from_date': pickup.isoformat(),
+            'to_date': pickup.isoformat(),
+            'pickup_location': 'Test location',
+        }
+        self.client.post('/login', data={'email': 'john@example.com', 'password': 'newpassword123'})
+        with patch('app.send_templated_email'):
+            first = self.client.post('/cars/1/book', data=booking_data, follow_redirects=True)
+            self.assertIn(b'Booking submitted successfully', first.data)
+            second = self.client.post('/cars/1/book', data=booking_data, follow_redirects=True)
+        self.assertIn(b'already reserved', second.data)
+
+        catalog = self.client.get('/cars', query_string={
+            'from_date': pickup.isoformat(), 'to_date': pickup.isoformat(),
+        })
+        self.assertNotIn(b'BMW M4 Competition Coupe', catalog.data)
+
+        with app.app_context():
+            db = get_db()
+            user_id = db.execute("SELECT id FROM users WHERE email = 'john@example.com'").fetchone()['id']
+            cursor = db.execute("""
+                INSERT INTO bookings (
+                    booking_number, user_id, vehicle_id, from_date, to_date,
+                    total_days, total_price, pickup_location, dropoff_location, status
+                ) VALUES (?, ?, 1, ?, ?, 1, 185, 'Test pickup', 'Test return', 'Pending')
+            """, (f'SAME-DAY-{uuid.uuid4().hex[:8]}', user_id, pickup.isoformat(), pickup.isoformat()))
+            competing_id = cursor.lastrowid
+            db.commit()
+        admin = app.test_client()
+        admin.post('/admin/login', data={'username': 'admin', 'password': 'admin123'})
+        result = admin.post(f'/admin/bookings/{competing_id}/status', data={
+            'status': 'Confirmed', 'admin_remark': '',
+        }, follow_redirects=True)
+        self.assertIn(b'another active reservation', result.data)
+        with app.app_context():
+            status = get_db().execute('SELECT status FROM bookings WHERE id = ?', (competing_id,)).fetchone()['status']
+        self.assertEqual(status, 'Pending')
 
     def test_09_resend_email_request(self):
         """Transactional email uses the Resend endpoint and bearer authorization."""
@@ -292,12 +346,32 @@ class FastCarsTestCase(unittest.TestCase):
         }), patch('email_service.smtplib.SMTP', return_value=smtp_context) as smtp_factory:
             result = send_email('customer@example.test', 'Verification code', '<p>123456</p>', '123456', auth_only=True)
             ordinary = send_email('customer@example.test', 'Booking update', '<p>booking</p>', 'booking')
-        smtp_factory.assert_called_once_with('smtp.gmail.com', 587, timeout=20)
-        smtp.starttls.assert_called_once()
-        smtp.login.assert_called_once_with('admin@gmail.com', 'abcdefghijklmnop')
-        smtp.send_message.assert_called_once()
+        self.assertEqual(smtp.starttls.call_count, 2)
+        self.assertEqual(smtp.login.call_count, 2)
+        smtp.login.assert_any_call('admin@gmail.com', 'abcdefghijklmnop')
+        self.assertEqual(smtp.send_message.call_count, 2)
         self.assertTrue(result['accepted'])
-        self.assertIsNone(ordinary)
+        self.assertTrue(ordinary['accepted'])
+        self.assertEqual(smtp_factory.call_count, 2)
+        smtp_factory.assert_any_call('smtp.gmail.com', 587, timeout=20)
+
+    def test_auth_email_without_provider_settings_fails_clearly(self):
+        """Unconfigured local email must not report a verification code as sent."""
+        from email_service import send_email
+        with patch.dict(os.environ, {'APP_ENV': 'development', 'MAIL_PROVIDER': 'gmail'}, clear=True):
+            with self.assertRaisesRegex(RuntimeError, 'email was not sent'):
+                send_email('customer@example.test', 'Verification code', '<p>123456</p>', '123456', auth_only=True)
+
+    def test_newsletter_sends_confirmation_and_admin_notice(self):
+        email = f"newsletter-{uuid.uuid4().hex[:8]}@example.test"
+        with patch('app.send_templated_email') as send_message:
+            response = self.client.post('/subscribe', data={'email': email}, follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(send_message.call_count, 2)
+        self.assertEqual(send_message.call_args_list[0].args[0], email)
+        with app.app_context():
+            admin_email = get_db().execute("SELECT email FROM admins WHERE username='admin'").fetchone()['email']
+        self.assertEqual(send_message.call_args_list[1].args[0], admin_email)
 
     def test_11_fleet_date_search_hides_unavailable_vehicles(self):
         """The landing-page date search filters cars with active overlapping bookings."""
@@ -419,13 +493,14 @@ class FastCarsTestCase(unittest.TestCase):
         dashboard_client = app.test_client()
         dashboard_client.post('/admin/login', data={'username': 'admin', 'password': 'admin123'})
         before = dashboard_client.get('/admin/dashboard/snapshot').get_json()
-        self.client.post('/register', data={
-            'full_name': 'Dashboard Live Test',
-            'email': f'dashboard-{uuid.uuid4().hex[:8]}@example.test',
-            'password': 'livepassword123',
-            'confirm_password': 'livepassword123',
-            'terms_accepted': 'yes',
-        })
+        with patch('app.send_templated_email'):
+            self.client.post('/register', data={
+                'full_name': 'Dashboard Live Test',
+                'email': f'dashboard-{uuid.uuid4().hex[:8]}@example.test',
+                'password': 'livepassword123',
+                'confirm_password': 'livepassword123',
+                'terms_accepted': 'yes',
+            })
         after_registration = dashboard_client.get('/admin/dashboard/snapshot').get_json()
         self.assertEqual(after_registration['users'], before['users'] + 1)
         with app.app_context():
@@ -457,10 +532,11 @@ class FastCarsTestCase(unittest.TestCase):
         import re
         match = re.search(r'password change code is (\d{6})', send_email.call_args.args[3])
         self.assertIsNotNone(match)
-        response = self.client.post('/profile', data={
-            'action': 'change_password', 'code': match.group(1),
-            'new_password': 'changedpass123', 'confirm_password': 'changedpass123'
-        }, follow_redirects=True)
+        with patch('app.send_templated_email'):
+            response = self.client.post('/profile', data={
+                'action': 'change_password', 'code': match.group(1),
+                'new_password': 'changedpass123', 'confirm_password': 'changedpass123'
+            }, follow_redirects=True)
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'Password changed successfully', response.data)
         self.client.post('/logout')
@@ -471,19 +547,21 @@ class FastCarsTestCase(unittest.TestCase):
 
     def test_17_admin_password_recovery_uses_admin_email(self):
         """Admin reset code is sent to the email assigned to the admin account."""
-        admin_email = 'awelethomasjoshua619@gmail.com'
+        with app.app_context():
+            admin_email = get_db().execute("SELECT email FROM admins WHERE username = 'admin'").fetchone()['email']
         with patch('app.send_templated_email') as send_email:
             response = self.client.post('/admin/forgot-password', data={'email': admin_email})
         self.assertEqual(response.status_code, 302)
         self.assertEqual(send_email.call_args.args[0], admin_email)
         import re
         code = re.search(r'admin password reset code is (\d{6})', send_email.call_args.args[3]).group(1)
-        response = self.client.post('/admin/reset-password', data={
-            'email': admin_email,
-            'code': code,
-            'new_password': 'AdminNewPassword123',
-            'confirm_password': 'AdminNewPassword123',
-        }, follow_redirects=True)
+        with patch('app.send_templated_email'):
+            response = self.client.post('/admin/reset-password', data={
+                'email': admin_email,
+                'code': code,
+                'new_password': 'AdminNewPassword123',
+                'confirm_password': 'AdminNewPassword123',
+            }, follow_redirects=True)
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'Administrator password reset successfully', response.data)
         response = self.client.post('/admin/login', data={

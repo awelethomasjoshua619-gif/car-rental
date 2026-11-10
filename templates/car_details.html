@@ -13,7 +13,7 @@
             </div>
             <div class="text-md-end mt-3 mt-md-0">
                 <span class="text-white-50 small d-block">Rental Rate</span>
-                <span class="h2 text-primary fw-bold mb-0">${{ "%.2f"|format(car.price_per_day) }}</span>
+                <span class="h2 text-primary fw-bold mb-0">{{ site_settings.get('currency_code') or 'Currency not set' }} {{ "%.2f"|format(car.price_per_day) }}</span>
                 <span class="text-white-50 small"> / day</span>
             </div>
         </div>
@@ -117,13 +117,6 @@
                             <strong class="text-white fs-6">{{ car.brand_name }}</strong>
                         </div>
                     </div>
-                    <div class="col-sm-4 col-6">
-                        <div class="p-3 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25 text-center">
-                            <i class="fa-solid fa-shield-halved text-primary fs-4 mb-1"></i>
-                            <div class="text-white-50 small">Insurance Status</div>
-                            <strong class="text-white fs-6">Comprehensive</strong>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -181,7 +174,7 @@
                 <p class="text-white-50 small mb-4">Send a reservation request for staff confirmation. No online payment is collected.</p>
 
                 <!-- Daily rate hidden element for JS calculator -->
-                <div id="daily_rate_val" data-rate="{{ car.price_per_day }}"></div>
+                <div id="daily_rate_val" data-rate="{{ car.price_per_day }}" data-currency="{{ site_settings.get('currency_code', '') }}" data-chauffeur-fee="{{ site_settings.get('chauffeur_fee_per_day', '') }}"></div>
 
                 {% if current_user %}
                     <form action="{{ url_for('book_car', vehicle_id=car.id) }}" method="POST">
@@ -206,12 +199,14 @@
                             <input type="text" name="dropoff_location" class="form-control" placeholder="Leave blank to use pick-up location">
                         </div>
 
+                        {% if site_settings.get('chauffeur_fee_per_day')|float > 0 %}
                         <div class="form-check form-switch mb-3">
                             <input class="form-check-input" type="checkbox" id="driver_needed" name="driver_needed" value="1">
                             <label class="form-check-label text-white small" for="driver_needed">
-                                Request Professional Chauffeur Driver (+$35 / day)
+                                Request a chauffeur (+{{ site_settings.get('currency_code') or 'Currency not set' }} {{ site_settings.get('chauffeur_fee_per_day') }} / day)
                             </label>
                         </div>
+                        {% endif %}
 
                         <div class="mb-3">
                             <label class="form-label small text-white-50">Special Requests / Flight Number (Optional)</label>
@@ -222,7 +217,7 @@
                         <div class="p-3 rounded-3 bg-dark bg-opacity-75 border border-secondary border-opacity-25 mb-4">
                             <div class="d-flex justify-content-between text-white-50 small mb-1">
                                 <span>Daily Rate:</span>
-                                <span class="text-white">${{ "%.2f"|format(car.price_per_day) }}</span>
+                                <span class="text-white">{{ site_settings.get('currency_code') or 'Currency not set' }} {{ "%.2f"|format(car.price_per_day) }}</span>
                             </div>
                             <div class="d-flex justify-content-between text-white-50 small mb-1">
                                 <span>Rental Duration:</span>
@@ -231,7 +226,7 @@
                             <hr class="border-secondary border-opacity-50 my-2">
                             <div class="d-flex justify-content-between align-items-center">
                                 <span class="fw-bold text-white">Estimated Total:</span>
-                                <span class="h4 text-primary fw-bold mb-0" id="calc_total_price">${{ "%.2f"|format(car.price_per_day) }}</span>
+                                <span class="h4 text-primary fw-bold mb-0" id="calc_total_price">{{ site_settings.get('currency_code') or 'Currency not set' }} {{ "%.2f"|format(car.price_per_day) }}</span>
                             </div>
                         </div>
 
@@ -258,17 +253,7 @@
                     </div>
                 {% endif %}
 
-                <div class="mt-4 pt-3 border-top border-secondary border-opacity-25 text-white-50 small">
-                    <div class="d-flex align-items-center gap-2 mb-2">
-                        <i class="fa-solid fa-gas-pump text-primary"></i> <strong>Fuel Policy:</strong> Full-to-Full
-                    </div>
-                    <div class="d-flex align-items-center gap-2 mb-2">
-                        <i class="fa-solid fa-gauge-high text-primary"></i> <strong>Mileage:</strong> 200 miles / day included
-                    </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="fa-solid fa-shield text-primary"></i> <strong>Insurance:</strong> Standard collision cover included
-                    </div>
-                </div>
+                <p class="mt-4 pt-3 border-top border-secondary border-opacity-25 text-white-50 small mb-0">Fuel, mileage, and insurance terms are confirmed by staff before pickup.</p>
             </div>
         </div>
     </div>
@@ -287,7 +272,7 @@
                                 <img src="{{ sim.image_url }}" alt="{{ sim.title }}" class="car-card-img">
                             </a>
                             <div class="car-price-badge">
-                                <span>${{ "%.0f"|format(sim.price_per_day) }}</span> / day
+                                <span>{{ site_settings.get('currency_code') or 'Currency not set' }} {{ "%.0f"|format(sim.price_per_day) }}</span> / day
                             </div>
                         </div>
                         <div class="car-body p-3">

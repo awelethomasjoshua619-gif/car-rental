@@ -224,6 +224,14 @@ def send_templated_email(recipient, subject, heading, message, action_url=None, 
     text = f'{heading}\n\n{message}' + (f'\n\n{action_label}: {action_url}' if action_url and action_label else '')
     return send_email(recipient, subject, html, text, auth_only=auth_only, support_reply=support_reply)
 
+def get_admin_notification_email():
+    """Use the configured support inbox, falling back to the demo admin account."""
+    support_email = (g.settings.get('company_email') or '').strip()
+    if is_valid_email(support_email):
+        return support_email
+    admin = get_db().execute('SELECT email FROM admins ORDER BY id LIMIT 1').fetchone()
+    return admin['email'] if admin and is_valid_email(admin['email']) else ''
+
 @app.cli.command('create-admin')
 def create_admin_command():
     """Interactively create the first production administrator."""
@@ -357,12 +365,18 @@ def cars():
             search_end = date.fromisoformat(to_date)
             if search_start < date.today() or search_end < search_start:
                 raise ValueError
+            # A same-day rental is billed as one day, so treat its end as the
+            # following day when checking overlap (both for browsing and booking).
             query += """ AND NOT EXISTS (
                 SELECT 1 FROM bookings b
                 WHERE b.vehicle_id = v.id
                   AND b.status IN ('Pending', 'Confirmed')
-                  AND b.from_date < ? AND b.to_date > ?
+                  AND b.from_date < ?
+                  AND CASE WHEN b.to_date <= b.from_date
+                           THEN date(b.from_date, '+1 day') ELSE b.to_date END > ?
             )"""
+            if search_end == search_start:
+                search_end += timedelta(days=1)
             params.extend([search_end.isoformat(), search_start.isoformat()])
         except ValueError:
             flash('Enter a valid future pick-up and return date to check availability.', 'warning')
@@ -465,8 +479,9 @@ def contact():
                 VALUES (?, ?, ?, ?, ?)
             """, (name, email, phone, subject, message))
             db.commit()
-            support_email = g.settings.get('company_email', '').strip()
-            if support_email:
+            support_email = get_admin_notification_email()
+            mail_failed = False
+            if support_email and support_email.lower() != email.lower():
                 try:
                     send_templated_email(
                         support_email, f"Website inquiry: {subject or 'General question'}",
@@ -475,6 +490,7 @@ def contact():
                     )
                 except Exception:
                     logger.exception('Could not send notification for contact inquiry')
+                    mail_failed = True
             try:
                 send_templated_email(
                     email, 'We received your FAST CARS inquiry', 'Thanks for contacting FAST CARS',
@@ -482,7 +498,11 @@ def contact():
                 )
             except Exception:
                 logger.exception('Could not send contact acknowledgement')
-            flash("Thank you! Your message has been received. Our team will contact you shortly.", "success")
+                mail_failed = True
+            if mail_failed:
+                flash("Your inquiry was saved, but one or more email notifications could not be delivered.", "warning")
+            else:
+                flash("Thank you! We emailed a receipt for your inquiry.", "success")
             return redirect(url_for('contact'))
 
     return render_template('contact.html')
@@ -512,7 +532,29 @@ def subscribe():
         else:
             db.execute("INSERT INTO subscribers (email) VALUES (?)", (email,))
             db.commit()
-            flash("Thank you for subscribing! You will receive exclusive car rental offers.", "success")
+            try:
+                send_templated_email(
+                    email, 'FAST CARS newsletter subscription confirmed', 'You are subscribed',
+                    'Your email has been added to the FAST CARS newsletter list. You can request removal by contacting our team.',
+                )
+            except Exception:
+                logger.exception('Could not send newsletter confirmation')
+                db.execute('DELETE FROM subscribers WHERE email = ?', (email,))
+                db.commit()
+                flash('We could not email your subscription confirmation. Please try again later.', 'danger')
+                return redirect(request.referrer or url_for('index'))
+            support_email = get_admin_notification_email()
+            staff_mail_failed = False
+            if support_email and support_email.lower() != email.lower():
+                try:
+                    send_templated_email(
+                        support_email, 'New FAST CARS newsletter subscriber', 'A visitor subscribed',
+                        f'Newsletter subscription added for {email}.',
+                    )
+                except Exception:
+                    logger.exception('Could not notify staff about new newsletter subscriber')
+                    staff_mail_failed = True
+            flash("Thank you for subscribing! We sent a confirmation email." if not staff_mail_failed else "Subscription confirmed by email, but the admin notification could not be delivered.", "success" if not staff_mail_failed else "warning")
     return redirect(request.referrer or url_for('index'))
 
 # ---------------------------------------------------------
@@ -631,12 +673,14 @@ def verify_email():
         session['user_id'] = user['id']
         session['user_name'] = user['full_name']
         session['user_email'] = user['email']
+        welcome_sent = True
         try:
             send_templated_email(email, 'Welcome to FAST CARS', 'Your account is ready',
                                  f'Hello {user["full_name"]}, your FAST CARS email has been verified.')
         except Exception:
             logger.exception('Could not send welcome email to user %s', user['id'])
-        flash('Email verified. Your account is ready.', 'success')
+            welcome_sent = False
+        flash('Email verified. Your account is ready. We emailed a welcome message.' if welcome_sent else 'Email verified and your account is ready, but the welcome email could not be delivered.', 'success' if welcome_sent else 'warning')
         return redirect(url_for('index'))
     if not user:
         flash('Enter the email address used during registration.', 'info')
@@ -744,7 +788,16 @@ def reset_password():
                        (generate_password_hash(new_password), reset['user_id']))
             db.execute('DELETE FROM password_reset_tokens WHERE user_id = ?', (reset['user_id'],))
             db.commit()
-            flash('Your password has been successfully reset. You can now log in.', 'success')
+            try:
+                send_templated_email(
+                    email, 'Your FAST CARS password was reset', 'Password reset complete',
+                    'Your password was reset successfully. If you did not make this change, contact the FAST CARS team immediately.',
+                    auth_only=True,
+                )
+                flash('Your password has been reset. We emailed a confirmation.', 'success')
+            except Exception:
+                logger.exception('Could not send password reset confirmation for user %s', reset['user_id'])
+                flash('Your password has been reset, but the confirmation email could not be sent.', 'warning')
             return redirect(url_for('login'))
     return render_template('reset_password.html', email=email)
 
@@ -781,7 +834,15 @@ def profile():
                 """, (full_name, phone, address, city, country, g.user['id']))
                 db.commit()
                 session['user_name'] = full_name
-                flash("Your profile details have been successfully updated.", "success")
+                try:
+                    send_templated_email(
+                        g.user['email'], 'Your FAST CARS profile was updated', 'Profile details updated',
+                        'Your account profile details were changed. If you did not make this change, contact the FAST CARS team.',
+                    )
+                    flash("Your profile details were updated and we emailed a confirmation.", "success")
+                except Exception:
+                    logger.exception('Could not send profile update notice for user %s', g.user['id'])
+                    flash("Your profile details were updated, but the confirmation email could not be sent.", "warning")
                 return redirect(url_for('profile'))
 
         elif action == 'request_password_change_code':
@@ -840,7 +901,16 @@ def profile():
                 db.execute("UPDATE users SET password_hash = ? WHERE id = ?", (new_hash, g.user['id']))
                 db.execute('DELETE FROM email_verification_codes WHERE user_id = ?', (g.user['id'],))
                 db.commit()
-                flash("Password changed successfully!", "success")
+                try:
+                    send_templated_email(
+                        g.user['email'], 'Your FAST CARS password was changed', 'Password changed',
+                        'Your account password was changed. If you did not make this change, contact the FAST CARS team immediately.',
+                        auth_only=True,
+                    )
+                    flash("Password changed successfully. We emailed a confirmation.", "success")
+                except Exception:
+                    logger.exception('Could not send password change notice for user %s', g.user['id'])
+                    flash("Password changed successfully, but the confirmation email could not be sent.", "warning")
                 return redirect(url_for('profile', tab='security'))
 
     user_bookings_count = db.execute("SELECT COUNT(*) FROM bookings WHERE user_id = ?", (g.user['id'],)).fetchone()[0]
@@ -866,7 +936,12 @@ def book_car(vehicle_id):
     to_date_str = request.form.get('to_date')
     pickup_location = request.form.get('pickup_location', '').strip()
     dropoff_location = request.form.get('dropoff_location', '').strip() or pickup_location
-    driver_needed = 1 if request.form.get('driver_needed') else 0
+    configured_driver_fee = g.settings.get('chauffeur_fee_per_day', '').strip()
+    try:
+        driver_fee_per_day = float(configured_driver_fee) if configured_driver_fee else 0.0
+    except (TypeError, ValueError):
+        driver_fee_per_day = 0.0
+    driver_needed = 1 if request.form.get('driver_needed') and driver_fee_per_day > 0 else 0
     message = request.form.get('message', '').strip()
 
     if not from_date_str or not to_date_str or not pickup_location:
@@ -894,17 +969,23 @@ def book_car(vehicle_id):
             SELECT id FROM bookings
             WHERE vehicle_id = ?
               AND status IN ('Pending', 'Confirmed')
-              AND from_date < ? AND to_date > ?
+              AND from_date < ?
+              AND CASE WHEN to_date <= from_date
+                       THEN date(from_date, '+1 day') ELSE to_date END > ?
             LIMIT 1
-        """, (vehicle_id, to_date.isoformat(), from_date.isoformat())).fetchone()
+        """, (
+            vehicle_id,
+            (to_date + timedelta(days=1) if to_date == from_date else to_date).isoformat(),
+            from_date.isoformat(),
+        )).fetchone()
         if conflict:
             db.rollback()
             flash("This vehicle is already reserved for some of those dates. Please choose different dates.", "warning")
             return redirect(url_for('car_details', vehicle_id=vehicle_id))
 
-        # Base price calculation + optional driver fee ($35/day)
+        # Add a chauffeur only when its daily fee has been configured by staff.
         daily_rate = car['price_per_day']
-        driver_fee = 35.00 * total_days if driver_needed else 0.0
+        driver_fee = driver_fee_per_day * total_days if driver_needed else 0.0
         total_price = (daily_rate * total_days) + driver_fee
 
         # Generate unique booking number
@@ -923,6 +1004,7 @@ def book_car(vehicle_id):
         ))
         db.commit()
 
+        email_failed = False
         try:
             send_templated_email(
                 g.user['email'], f"Reservation request {booking_number} received",
@@ -931,7 +1013,8 @@ def book_car(vehicle_id):
             )
         except Exception:
             logger.exception('Could not send booking email for booking %s', booking_number)
-        support_email = g.settings.get('company_email', '').strip()
+            email_failed = True
+        support_email = get_admin_notification_email()
         if support_email:
             try:
                 base_url = os.environ.get('PUBLIC_BASE_URL', request.url_root.rstrip('/'))
@@ -943,7 +1026,11 @@ def book_car(vehicle_id):
                 )
             except Exception:
                 logger.exception('Could not notify staff for booking %s', booking_number)
-        flash(f"Booking submitted successfully! Your reservation reference is #{booking_number}.", "success")
+                email_failed = True
+        if email_failed:
+            flash(f"Booking #{booking_number} was saved, but one or more email notifications could not be delivered.", "warning")
+        else:
+            flash(f"Booking submitted successfully! Your reservation reference is #{booking_number}. We emailed the details.", "success")
         return redirect(url_for('my_bookings'))
 
     except ValueError:
@@ -981,7 +1068,27 @@ def cancel_booking(booking_id):
     else:
         db.execute("UPDATE bookings SET status = 'Cancelled' WHERE id = ?", (booking_id,))
         db.commit()
-        flash("Your booking has been cancelled.", "info")
+        email_failed = False
+        try:
+            send_templated_email(
+                g.user['email'], f"Booking {booking['booking_number']} cancelled", 'Booking cancelled',
+                f"Your reservation {booking['booking_number']} was cancelled as requested.",
+            )
+        except Exception:
+            logger.exception('Could not send cancellation confirmation for booking %s', booking_id)
+            email_failed = True
+        support_email = get_admin_notification_email()
+        if support_email:
+            try:
+                send_templated_email(
+                    support_email, f"Booking {booking['booking_number']} cancelled by customer",
+                    'A reservation was cancelled',
+                    f"Customer {g.user['full_name']} ({g.user['email']}) cancelled reservation {booking['booking_number']}.",
+                )
+            except Exception:
+                logger.exception('Could not notify staff of cancellation for booking %s', booking_id)
+                email_failed = True
+        flash("Booking cancelled, but an email notification could not be delivered." if email_failed else "Your booking has been cancelled. We emailed a confirmation.", "warning" if email_failed else "info")
 
     return redirect(url_for('my_bookings'))
 
@@ -1009,8 +1116,20 @@ def testimonials():
                 INSERT INTO testimonials (user_id, rating, title, content, status)
                 VALUES (?, ?, ?, ?, 0)
             """, (g.user['id'], rating, title, content))
+            testimonial_id = db.execute('SELECT last_insert_rowid()').fetchone()[0]
             db.commit()
-            flash("Thank you for sharing your experience! Your testimonial has been submitted for admin review.", "success")
+            support_email = get_admin_notification_email()
+            mail_failed = False
+            if support_email:
+                try:
+                    send_templated_email(
+                        support_email, 'A FAST CARS testimonial needs review', 'New testimonial submitted',
+                        f'{g.user["full_name"]} submitted "{title or "Customer review"}" for moderation (record {testimonial_id}).',
+                    )
+                except Exception:
+                    logger.exception('Could not notify staff about testimonial %s', testimonial_id)
+                    mail_failed = True
+            flash("Your testimonial was submitted for review." if not mail_failed else "Your testimonial was submitted, but the admin notification could not be emailed.", "success" if not mail_failed else "warning")
             return redirect(url_for('testimonials'))
 
     # Public approved testimonials
@@ -1131,7 +1250,17 @@ def admin_reset_password():
                        (generate_password_hash(new_password), reset['admin_id']))
             db.execute('DELETE FROM admin_password_reset_codes WHERE admin_id = ?', (reset['admin_id'],))
             db.commit()
-            flash('Administrator password reset successfully. Sign in with your new password.', 'success')
+            try:
+                send_templated_email(
+                    reset['email'], 'FAST CARS administrator password was reset',
+                    'Administrator password reset complete',
+                    'Your administrator password was reset successfully. If you did not make this change, contact the site owner immediately.',
+                    auth_only=True,
+                )
+                flash('Administrator password reset successfully. We emailed a confirmation.', 'success')
+            except Exception:
+                logger.exception('Could not send administrator password reset confirmation for admin %s', reset['admin_id'])
+                flash('Administrator password reset successfully, but the confirmation email could not be sent.', 'warning')
             return redirect(url_for('admin_login'))
     return render_template('admin/reset_password.html', email=email)
 
@@ -1515,13 +1644,18 @@ def admin_booking_status(booking_id):
             flash("Booking record not found.", "warning")
             return redirect(url_for('admin_bookings'))
         if new_status == 'Confirmed':
+            requested_end = booking['to_date']
+            if requested_end <= booking['from_date']:
+                requested_end = (date.fromisoformat(booking['from_date']) + timedelta(days=1)).isoformat()
             overlap = db.execute("""
                 SELECT id FROM bookings
                 WHERE vehicle_id = ? AND id != ?
                   AND status IN ('Pending', 'Confirmed')
-                  AND from_date < ? AND to_date > ?
+                  AND from_date < ?
+                  AND CASE WHEN to_date <= from_date
+                           THEN date(from_date, '+1 day') ELSE to_date END > ?
                 LIMIT 1
-            """, (booking['vehicle_id'], booking_id, booking['to_date'], booking['from_date'])).fetchone()
+            """, (booking['vehicle_id'], booking_id, requested_end, booking['from_date'])).fetchone()
             if overlap:
                 flash("This vehicle has another active reservation during those dates. Resolve it before confirming this booking.", "danger")
                 return redirect(url_for('admin_bookings'))
@@ -1535,6 +1669,7 @@ def admin_booking_status(booking_id):
             SELECT u.email, b.booking_number FROM bookings b
             JOIN users u ON u.id = b.user_id WHERE b.id = ?
         """, (booking_id,)).fetchone()
+        email_failed = False
         if user:
             try:
                 send_templated_email(
@@ -1544,7 +1679,8 @@ def admin_booking_status(booking_id):
                 )
             except Exception:
                 logger.exception('Could not send status email for booking %s', booking_id)
-        flash(f"Booking status updated to '{new_status}'.", "success")
+                email_failed = True
+        flash(f"Booking status updated to '{new_status}'." if not email_failed else f"Booking status updated to '{new_status}', but the customer email could not be delivered.", "success" if not email_failed else "warning")
     return redirect(url_for('admin_bookings'))
 
 # Admin Testimonials Management
@@ -1564,13 +1700,27 @@ def admin_testimonials():
 @admin_required
 def admin_testimonial_toggle(testimonial_id):
     db = get_db()
-    t = db.execute("SELECT status FROM testimonials WHERE id = ?", (testimonial_id,)).fetchone()
+    t = db.execute("""
+        SELECT t.status, t.title, u.email, u.full_name
+        FROM testimonials t JOIN users u ON u.id = t.user_id WHERE t.id = ?
+    """, (testimonial_id,)).fetchone()
     if t:
         new_status = 0 if t['status'] == 1 else 1
         db.execute("UPDATE testimonials SET status = ? WHERE id = ?", (new_status, testimonial_id))
         db.commit()
         status_label = "Active (Published)" if new_status == 1 else "Inactive (Hidden)"
-        flash(f"Testimonial marked as {status_label}.", "success")
+        if new_status == 1:
+            try:
+                send_templated_email(
+                    t['email'], 'Your FAST CARS review was published', 'Review approved',
+                    f'Hi {t["full_name"]}, your testimonial "{t["title"] or "Customer review"}" has been approved and published.',
+                )
+                flash(f"Testimonial marked as {status_label}. The customer was emailed.", "success")
+            except Exception:
+                logger.exception('Could not email testimonial approval for testimonial %s', testimonial_id)
+                flash(f"Testimonial marked as {status_label}, but the customer email could not be delivered.", "warning")
+        else:
+            flash(f"Testimonial marked as {status_label}.", "success")
     return redirect(url_for('admin_testimonials'))
 
 @app.route('/admin/testimonials/<int:testimonial_id>/delete', methods=['POST'])
@@ -1652,9 +1802,21 @@ def admin_users():
 @admin_required
 def admin_user_delete(user_id):
     db = get_db()
+    user = db.execute('SELECT email FROM users WHERE id = ?', (user_id,)).fetchone()
+    notification_failed = False
+    if user:
+        try:
+            send_templated_email(
+                user['email'], 'Your FAST CARS account was removed', 'Account removed',
+                'Your FAST CARS account was removed by an administrator. Contact the site owner if you believe this was a mistake.',
+                auth_only=True,
+            )
+        except Exception:
+            logger.exception('Could not email account deletion notice for user %s', user_id)
+            notification_failed = True
     db.execute("DELETE FROM users WHERE id = ?", (user_id,))
     db.commit()
-    flash("User account deleted successfully.", "success")
+    flash("User account deleted successfully." if not notification_failed else "User account deleted, but the email notice could not be delivered.", "success" if not notification_failed else "warning")
     return redirect(url_for('admin_users'))
 
 # Admin Newsletter Subscribers
@@ -1669,9 +1831,20 @@ def admin_subscribers():
 @admin_required
 def admin_subscriber_delete(sub_id):
     db = get_db()
+    subscriber = db.execute('SELECT email FROM subscribers WHERE id = ?', (sub_id,)).fetchone()
+    notification_failed = False
+    if subscriber:
+        try:
+            send_templated_email(
+                subscriber['email'], 'FAST CARS newsletter subscription removed', 'You have been unsubscribed',
+                'Your email has been removed from the FAST CARS newsletter list.',
+            )
+        except Exception:
+            logger.exception('Could not email unsubscribe confirmation for subscriber %s', sub_id)
+            notification_failed = True
     db.execute("DELETE FROM subscribers WHERE id = ?", (sub_id,))
     db.commit()
-    flash("Subscriber removed.", "success")
+    flash("Subscriber removed." if not notification_failed else "Subscriber removed, but the email notice could not be delivered.", "success" if not notification_failed else "warning")
     return redirect(url_for('admin_subscribers'))
 
 # Admin Page Content & Settings Management
@@ -1680,9 +1853,20 @@ def admin_subscriber_delete(sub_id):
 def admin_pages():
     db = get_db()
     if request.method == 'POST':
-        for key in ['company_name', 'company_phone', 'company_email', 'company_address', 'working_hours', 'about_us', 'terms_conditions', 'privacy_policy']:
+        for key in ['company_name', 'company_phone', 'company_email', 'company_address', 'working_hours', 'currency_code', 'chauffeur_fee_per_day', 'about_us', 'terms_conditions', 'privacy_policy']:
             if key in request.form:
                 val = request.form.get(key, '').strip()
+                if key == 'currency_code':
+                    val = val.upper()[:8]
+                if key == 'chauffeur_fee_per_day' and val:
+                    try:
+                        fee = float(val)
+                        if not math.isfinite(fee) or fee < 0:
+                            raise ValueError
+                        val = f'{fee:.2f}'
+                    except ValueError:
+                        flash('Chauffeur fee must be a valid non-negative amount.', 'danger')
+                        return redirect(url_for('admin_pages'))
                 db.execute("INSERT OR REPLACE INTO site_settings (key, value) VALUES (?, ?)", (key, val))
         db.commit()
         flash("Website settings and page content updated successfully.", "success")

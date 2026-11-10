@@ -26,7 +26,7 @@ The application is built using **Python (Flask)**, **SQLite3**, **HTML5**, **CSS
 * **User Registration & Security:** Create accounts with full profile details and secure password hashing.
 * **Email Verification:** New customer accounts receive a six-digit email code and cannot sign in until the address is verified.
 * **Password Recovery:** Single-use, time-limited six-digit reset codes are sent to the account email.
-* **Car Reservation:** Reservation requests with date conflict checks, custom pick-up/drop-off locations, and optional chauffeur service ($35/day). Online payments are not enabled.
+* **Car Reservation:** Reservation requests with date conflict checks, custom pick-up/drop-off locations, and an optional chauffeur fee configured by an administrator. Online payments are not enabled.
 * **Booking History & Status Tracking:** Monitor reservation status (`Pending`, `Confirmed`, `Cancelled`).
 * **Booking Summary:** View and print reservation details and the estimated rental total.
 * **Profile Management:** Update personal contact details and change account passwords.
@@ -50,10 +50,10 @@ The application is built using **Python (Flask)**, **SQLite3**, **HTML5**, **CSS
 
 | Role | Username / Email | Password | Access URL |
 | :--- | :--- | :--- | :--- |
-| **Administrator** | `admin` or `awelethomasjoshua619@gmail.com` | `admin123` *(unless changed)* | [http://127.0.0.1:5000/admin/login](http://127.0.0.1:5000/admin/login) |
+| **Administrator** | `admin` or the address set in `DEMO_ADMIN_EMAIL` | `admin123` *(unless changed)* | [http://127.0.0.1:5000/admin/login](http://127.0.0.1:5000/admin/login) |
 | **Registered User** | `john@example.com` | `user123` | [http://127.0.0.1:5000/login](http://127.0.0.1:5000/login) |
 
-The administrator email above is assigned to the admin account; the email alone does not grant admin access. Use the admin password, or choose **Forgot admin password?** to receive a one-time reset code at that address. Public admin registration is disabled. These demo credentials apply only to the development database. Production startup does not seed sample accounts or sample bookings.
+The administrator email is assigned to the admin account; the email alone does not grant admin access. Set `DEMO_ADMIN_EMAIL` in `.env` to an inbox you can access so **Forgot admin password?** delivers its one-time code there. Public admin registration is disabled. These demo credentials apply only to the development database and are not shown on login pages. Production startup does not seed sample accounts or sample bookings.
 
 ---
 
@@ -98,7 +98,7 @@ python test_app.py
 
 ### Local demonstration scope
 
-The local app uses a development database seeded with sample fleet and demo accounts. Gmail SMTP sends registration verification, password reset, and password-change codes, plus replies that an administrator explicitly writes for a contact inquiry. Enable Google 2-Step Verification and create an App Password in the Google Account; use that 16-character App Password in `.env`, not the normal Gmail password. Automatic contact acknowledgements, booking notifications, and newsletter messages are not sent through Gmail. If a support reply cannot be delivered, the inquiry is not marked as replied. Reservation requests are stored and managed by staff; online card payments are not enabled.
+The local app uses a development database seeded with sample fleet and demo accounts. Configure a working mail provider for verification codes, password recovery, booking notices, contact inquiries and replies, profile changes, reviews, and newsletter confirmations. Gmail SMTP requires Google 2-Step Verification and a 16-character App Password in `.env`; the host must also allow outbound SMTP connections. The app reports when an email cannot be delivered. If a support reply cannot be delivered, the inquiry is not marked as replied. Reservation requests are stored and managed by staff; online card payments are not enabled. Set the rental currency and any chauffeur fee in Admin → Website Content before publishing the catalog.
 
 ## Optional Production Deployment with Docker
 

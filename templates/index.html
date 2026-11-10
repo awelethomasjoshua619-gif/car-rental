@@ -98,7 +98,7 @@
                         <div class="p-4 mt-auto">
                             <h3 class="size-card-title text-white mb-2">SMALL</h3>
                             <p class="size-card-desc text-white-50 mb-0">
-                                {% if small_rate %}From &#36;{{ "%.0f"|format(small_rate) }} / day{% else %}View available vehicles in this category{% endif %}
+                                {% if small_rate %}From {{ site_settings.get('currency_code') or 'Currency not set' }} {{ "%.0f"|format(small_rate) }} / day{% else %}View available vehicles in this category{% endif %}
                             </p>
                         </div>
                     </div>
@@ -115,7 +115,7 @@
                         <div class="p-4 mt-auto">
                             <h3 class="size-card-title text-white mb-2">PREMIUM</h3>
                             <p class="size-card-desc text-white-50 mb-0">
-                                {% if premium_rate %}From &#36;{{ "%.0f"|format(premium_rate) }} / day{% else %}View available vehicles in this category{% endif %}
+                                {% if premium_rate %}From {{ site_settings.get('currency_code') or 'Currency not set' }} {{ "%.0f"|format(premium_rate) }} / day{% else %}View available vehicles in this category{% endif %}
                             </p>
                         </div>
                     </div>
@@ -132,7 +132,7 @@
                         <div class="p-4 mt-auto">
                             <h3 class="size-card-title text-white mb-2">LARGE</h3>
                             <p class="size-card-desc text-white-50 mb-0">
-                                {% if large_rate %}From &#36;{{ "%.0f"|format(large_rate) }} / day{% else %}View available vehicles in this category{% endif %}
+                                {% if large_rate %}From {{ site_settings.get('currency_code') or 'Currency not set' }} {{ "%.0f"|format(large_rate) }} / day{% else %}View available vehicles in this category{% endif %}
                             </p>
                         </div>
                     </div>
@@ -173,7 +173,7 @@
                         </p>
                         <div class="d-flex justify-content-between align-items-center mt-auto pt-2">
                             <span class="car-item-rate text-dark fw-bold fs-6">
-                                ${{ "%.0f"|format(car.price_per_day) }} <span class="fw-normal text-muted small">/ day</span>
+                                {{ site_settings.get('currency_code') or 'Currency not set' }} {{ "%.0f"|format(car.price_per_day) }} <span class="fw-normal text-muted small">/ day</span>
                             </span>
                             <a href="{{ url_for('car_details', vehicle_id=car.id) }}" class="btn btn-black btn-sm px-3 py-1 fw-bold">
                                 Book

@@ -83,14 +83,8 @@
 
                     <!-- Max Price -->
                     <div class="mb-4">
-                        <label class="form-label small text-white-50">Max Daily Rate ($)</label>
-                        <select name="max_price" class="form-select">
-                            <option value="">Any Price</option>
-                            <option value="80" {% if selected_max_price == 80 %}selected{% endif %}>Up to $80</option>
-                            <option value="120" {% if selected_max_price == 120 %}selected{% endif %}>Up to $120</option>
-                            <option value="200" {% if selected_max_price == 200 %}selected{% endif %}>Up to $200</option>
-                            <option value="300" {% if selected_max_price == 300 %}selected{% endif %}>Up to $300</option>
-                        </select>
+                        <label class="form-label small text-white-50">Maximum daily rate</label>
+                        <input type="number" name="max_price" class="form-control" min="0.01" step="0.01" value="{{ selected_max_price if selected_max_price is not none else '' }}" placeholder="Any rate">
                     </div>
 
                     <button type="submit" class="btn btn-primary w-100 py-2">
@@ -140,7 +134,7 @@
                                         <img src="{{ car.image_url }}" alt="{{ car.title }}" class="car-card-img" loading="lazy">
                                     </a>
                                     <div class="car-price-badge">
-                                        <span>${{ "%.0f"|format(car.price_per_day) }}</span> / day
+                                        <span>{{ site_settings.get('currency_code') or 'Currency not set' }} {{ "%.0f"|format(car.price_per_day) }}</span> / day
                                     </div>
                                 </div>
 

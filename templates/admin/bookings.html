@@ -58,7 +58,7 @@
                                 <span class="text-white-50 small">Duration: {{ b.total_days }} day(s)</span>
                             </td>
                             <td>
-                                <strong class="text-white fs-6">${{ "%.2f"|format(b.total_price) }}</strong>
+                                <strong class="text-white fs-6">{{ site_settings.get('currency_code') or 'Currency not set' }} {{ "%.2f"|format(b.total_price) }}</strong>
                             </td>
                             <td>
                                 {% if b.status == 'Confirmed' %}

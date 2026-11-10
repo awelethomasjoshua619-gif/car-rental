@@ -21,7 +21,8 @@ document.addEventListener('DOMContentLoaded', function () {
             const fromVal = fromDateInput.value;
             const toVal = toDateInput.value;
             const dailyRate = parseFloat(dailyPriceElement.dataset.rate) || 0;
-            const driverFeePerDay = 35; // $35/day
+            const driverFeePerDay = parseFloat(dailyPriceElement.dataset.chauffeurFee) || 0;
+            const currencyCode = dailyPriceElement.dataset.currency || 'Currency not set';
 
             if (fromVal && toVal) {
                 const date1 = new Date(fromVal);
@@ -37,10 +38,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     const grandTotal = (dailyRate * diffDays) + driverTotal;
 
                     if (daysDisplay) daysDisplay.textContent = diffDays + (diffDays === 1 ? ' day' : ' days');
-                    if (totalDisplay) totalDisplay.textContent = '$' + grandTotal.toFixed(2);
+                    if (totalDisplay) totalDisplay.textContent = currencyCode + ' ' + grandTotal.toFixed(2);
                 } else {
                     if (daysDisplay) daysDisplay.textContent = 'Invalid dates';
-                    if (totalDisplay) totalDisplay.textContent = '$0.00';
+                    if (totalDisplay) totalDisplay.textContent = currencyCode + ' 0.00';
                 }
             }
         }

@@ -64,18 +64,6 @@
             </button>
         </form>
 
-        {% if demo_mode %}
-        <div class="p-3 bg-dark rounded border border-secondary border-opacity-50 text-center mb-3">
-            <div class="small text-white-50 mb-1">Default Admin Login:</div>
-            <code class="text-white small">admin / admin123</code>
-            <div class="mt-2">
-                <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-3 text-white-50" onclick="document.getElementById('adm_user').value='admin'; document.getElementById('adm_pass').value='admin123';">
-                    Autofill Credentials
-                </button>
-            </div>
-        </div>
-        {% endif %}
-
         <div class="text-center">
             <a href="{{ url_for('index') }}" class="text-white-50 text-decoration-none small">
                 <i class="fa-solid fa-arrow-left me-1"></i> Return to Public Site
