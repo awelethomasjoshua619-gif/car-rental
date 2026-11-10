@@ -98,7 +98,7 @@ python test_app.py
 
 ### Local demonstration scope
 
-The local app uses a development database seeded with sample fleet and demo accounts. Gmail SMTP can deliver registration verification, password reset, and password-change codes directly from the admin Gmail account. Enable Google 2-Step Verification and create an App Password in the Google Account; use that 16-character App Password in `.env`, not the normal Gmail password. The app deliberately keeps booking, contact, and newsletter messages out of Gmail. If the SMTP settings are incomplete, development email is logged in the terminal. Restart `python run.py` after saving `.env`. Reservation requests are stored and managed by staff; online card payments are not enabled.
+The local app uses a development database seeded with sample fleet and demo accounts. Gmail SMTP sends registration verification, password reset, and password-change codes, plus replies that an administrator explicitly writes for a contact inquiry. Enable Google 2-Step Verification and create an App Password in the Google Account; use that 16-character App Password in `.env`, not the normal Gmail password. Automatic contact acknowledgements, booking notifications, and newsletter messages are not sent through Gmail. If a support reply cannot be delivered, the inquiry is not marked as replied. Reservation requests are stored and managed by staff; online card payments are not enabled.
 
 ## Optional Production Deployment with Docker
 

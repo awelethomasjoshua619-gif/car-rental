@@ -14,21 +14,23 @@ logger = logging.getLogger(__name__)
 RESEND_ENDPOINT = "https://api.resend.com/emails"
 
 
-def send_email(to, subject, html, text=None, *, auth_only=False):
-    """Send account security mail through Gmail SMTP when selected, otherwise Resend."""
+def send_email(to, subject, html, text=None, *, auth_only=False, support_reply=False):
+    """Send security mail and explicit admin replies through the configured provider."""
     provider = os.environ.get('MAIL_PROVIDER', 'resend').strip().lower()
     if provider in {'gmail', 'smtp'}:
-        # The Gmail account is deliberately restricted to account verification,
-        # password recovery, and password-change codes for this local school app.
-        if not auth_only:
+        # Gmail is used for auth mail and explicit admin replies to customer inquiries.
+        # Other non-auth mail (e.g. automatic contact-form acknowledgements) stays local.
+        if not auth_only and not support_reply:
             if os.environ.get('APP_ENV', 'development').lower() == 'production':
-                raise RuntimeError('The Gmail sender is restricted to authentication mail.')
+                raise RuntimeError('Gmail is restricted to authentication mail and admin inquiry replies.')
             logger.info('Non-authentication email left local: %s | %s', to, subject)
             return None
         username = os.environ.get('SMTP_USERNAME', '').strip()
         password = os.environ.get('SMTP_PASSWORD', '').replace(' ', '').strip()
         sender = os.environ.get('MAIL_FROM', '').strip()
         if not username or not password or not sender:
+            if support_reply:
+                raise RuntimeError('Gmail SMTP is not configured for this support reply.')
             if os.environ.get('APP_ENV', 'development').lower() == 'production':
                 raise RuntimeError('Gmail SMTP username, app password, and sender are required.')
             logger.info('Development email to %s | %s\n%s', to, subject, text or html)
@@ -56,6 +58,8 @@ def send_email(to, subject, html, text=None, *, auth_only=False):
     api_key = os.environ.get("RESEND_API_KEY")
     sender = os.environ.get("MAIL_FROM")
     if not api_key or not sender:
+        if support_reply:
+            raise RuntimeError("Email delivery is not configured for this support reply.")
         if os.environ.get("APP_ENV", "development").lower() == "production":
             raise RuntimeError("RESEND_API_KEY and MAIL_FROM must be configured.")
         logger.info("Development email to %s | %s\n%s", to, subject, text or html)

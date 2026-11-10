@@ -211,7 +211,7 @@ def auth_rate_limited(scope, identity, max_attempts=8, window_seconds=900):
     db.commit()
     return count >= max_attempts
 
-def send_templated_email(recipient, subject, heading, message, action_url=None, action_label=None, *, auth_only=False):
+def send_templated_email(recipient, subject, heading, message, action_url=None, action_label=None, *, auth_only=False, support_reply=False):
     from html import escape
 
     safe_heading = escape(heading)
@@ -222,7 +222,7 @@ def send_templated_email(recipient, subject, heading, message, action_url=None, 
         action_html = f'<p><a href="{safe_url}">{escape(action_label)}</a></p>'
     html = f'<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto"><h2>{safe_heading}</h2><p>{safe_message}</p>{action_html}<p>FAST CARS</p></div>'
     text = f'{heading}\n\n{message}' + (f'\n\n{action_label}: {action_url}' if action_url and action_label else '')
-    return send_email(recipient, subject, html, text, auth_only=auth_only)
+    return send_email(recipient, subject, html, text, auth_only=auth_only, support_reply=support_reply)
 
 @app.cli.command('create-admin')
 def create_admin_command():
@@ -1614,6 +1614,7 @@ def admin_contact_status(query_id):
                 f"Response to your FAST CARS inquiry: {query['subject'] or 'General question'}",
                 'A response from FAST CARS',
                 reply_message,
+                support_reply=True,
             )
         except Exception:
             logger.exception('Could not send reply for contact inquiry %s', query_id)

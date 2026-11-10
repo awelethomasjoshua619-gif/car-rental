@@ -107,7 +107,7 @@ The proposed web application digitizes the complete rental life-cycle into a res
 #### Module 2: Registered Users (Customer Account Portal)
 1. **Account Registration:** Sign up with name, email, password (minimum 8 characters), phone, street address, city, and country; accept the displayed terms.
 2. **Secure Authentication:** Log in with verified email and password.
-3. **Email Verification & Password Recovery:** New customer accounts require a six-digit email verification code before sign-in. Customer and admin password recovery use single-use, time-limited email codes. In this local setup, authentication codes are delivered through the configured Gmail SMTP account; admin recovery goes to the assigned administrator email. The test suite verifies email routing, while a prior delivery test confirmed Gmail can receive a message.
+3. **Email Verification & Password Recovery:** New customer accounts require a six-digit email verification code before sign-in. Customer and admin password recovery use single-use, time-limited email codes. In this local setup, authentication codes are delivered through the configured Gmail SMTP account; admin recovery goes to the assigned administrator email. Administrators can also send replies to customer inquiries through Gmail SMTP. The inquiry is only marked as replied after the email provider accepts the message.
 4. **Interactive Car Booking:** Select pick-up date, return date, pick-up location, drop-off location, optional chauffeur driver add-on ($35/day), and flight/special requests.
 5. **Real-time Price Engine:** Dynamically calculates total rental days and total cost before submission.
 6. **Booking History:** Monitor bookings across status stages: `Pending`, `Confirmed`, and `Cancelled`.
