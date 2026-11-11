@@ -1,14 +1,14 @@
 # FAST CARS - Car Rental Booking System
 > **Aptech eProject Deliverable (Python & Web Engineering)**  
-> Developed for **FAST CARS Inc.**
+> Academic school project demonstrating a car-rental booking website.
 
 ---
 
 ## 📌 Executive Summary
 
-**FAST CARS** is a Flask and SQLite car-rental reservation application with a public fleet, customer accounts, reservation requests, and an administration portal. It includes a Docker production image and a persistent-volume deployment setup. A real launch still requires verified company details, a configured domain, and Resend credentials.
+**FAST CARS** is a school project: a Flask and SQLite car-rental reservation application with a sample public fleet, customer accounts, reservation requests, and an administration portal. It includes an optional Docker image and persistent-volume setup. It is a demonstration system rather than a verified rental business; set presentation contact details, currency, and policies to the values you intend to show.
 
-The application is built using **Python (Flask)**, **SQLite3**, **HTML5**, **CSS3**, and **JavaScript**, adhering strictly to modern security best practices (cryptographic password hashing with PBKDF2/SHA-256, SQL injection prevention via parameterized queries, and role-based access control).
+The stack is **Python 3**, **Flask**, **SQLite 3**, **HTML5**, **CSS3**, and **JavaScript**, with Flask-WTF for forms and CSRF protection, Werkzeug for password hashing, python-dotenv for local configuration, and Gmail SMTP or Resend for email.
 
 ---
 
@@ -104,14 +104,14 @@ The local app uses a development database seeded with sample fleet and demo acco
 
 1. Copy .env.example to .env and set a strong SECRET_KEY. Generate one with python -c "import secrets; print(secrets.token_urlsafe(48))".
 2. Set PUBLIC_BASE_URL to the final HTTPS website address.
-3. Add a Resend API key and a sender address on a domain verified in Resend. The app checks these settings and refuses to start in production when they are missing.
+3. Configure the production email provider. Resend requires an API key and verified sender address; Gmail SMTP requires an app password and reachable SMTP host. Production startup validates required settings.
 4. Start the service with docker compose up --build -d. Docker Compose stores the SQLite database in a named persistent volume and uploaded car images in static/uploads.
 5. Create the first administrator interactively with docker compose exec web flask --app app create-admin.
 6. Sign in, add the real fleet and company details, and confirm the contact, terms, and privacy pages before launch.
 
 The deployment exposes /healthz for platform health checks. For a managed host, deploy the Docker image with persistent storage mounted at /data, preserve the environment variables from .env.example, and use the host-provided HTTPS URL in PUBLIC_BASE_URL.
 
-For local real-email delivery, use the Resend settings above. Public production hosting additionally requires HTTPS and production settings.
+For live email delivery, configure either Gmail SMTP or Resend in `.env`. Public production hosting additionally requires HTTPS and production settings.
 
 ## 📁 Project Directory Structure
 

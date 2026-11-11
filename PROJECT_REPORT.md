@@ -20,7 +20,32 @@ This is to certify that the project entitled:
 has been successfully conceptualized, designed, implemented, and rigorously tested in 
 accordance with the prescribed Aptech eProject curriculum guidelines and academic quality standards.
 
-This report describes the implemented FAST CARS reservation application and its current verification scope. The implementation covers core guest, customer, and administrator flows. External email delivery and public hosting still require live service credentials and deployment configuration; online payments are out of scope.
+This report describes FAST CARS, a school project that demonstrates a car rental reservation and fleet management website. It covers the implemented guest, customer, and administrator flows. Email can be sent through configured Gmail SMTP or Resend; public hosting needs its own production configuration. Online payments are out of scope.
+
+## Project at a glance
+
+FAST CARS is a responsive web application for browsing a sample vehicle fleet, registering and verifying customer accounts by email, requesting rentals, and managing the fleet and requests through an administrator portal. It is an academic demonstration, not a representation of a verified real rental business. Company contact details, currency, and rental policies must be set to the values chosen for the presentation. The app does not collect online payments.
+
+### Technology stack
+
+| Layer | Technology | Use in this project |
+| :--- | :--- | :--- |
+| Server-side application | Python 3, Flask | Web routes, sessions, forms, business rules |
+| Database | SQLite 3 | Users, administrators, vehicles, bookings, reviews, inquiries, subscribers, and site settings |
+| Browser interface | HTML5, CSS3, JavaScript | Responsive pages, styling, client-side interactions and booking estimate |
+| Form and request security | Flask-WTF, CSRF protection, Werkzeug | Form validation, cross-site request protection, password hashing |
+| Email | Gmail SMTP or Resend API | Verification codes, password recovery, and application notifications |
+| Configuration | python-dotenv and environment variables | Local settings and service credentials |
+| Run and deployment options | Python runner, Gunicorn, Docker, Docker Compose | Local development and optional container deployment |
+| Automated checks | Python unittest and Flask test client | Route, account, booking, email-client, and admin behavior checks |
+
+### Main implemented functions
+
+- Visitors can browse and filter the sample fleet, view vehicle details, calculate an estimated rental total, read project content, submit inquiries, and subscribe to email updates.
+- Customers can register, verify their email, sign in, request and manage bookings, check booking status, update their profile, change or recover their password by email, and submit reviews.
+- Administrators can manage fleet brands and vehicles, review and update bookings, moderate reviews, handle inquiries, manage subscribers, update site content, and recover the admin password by email.
+- Booking availability checks include same-day rentals, which occupy one billable day. Booking requests are not online payments.
+- Outgoing email depends on valid provider settings and network access. The project has successfully sent a verification email during local setup; the automated suite mocks provider delivery and does not guarantee future inbox delivery.
 
 Lead Developer / Student Name: ___________________________
 Center / Branch Name:          ___________________________
@@ -282,7 +307,7 @@ Output: Generic request response or Password Reset Success/Error
 
 Step 1: Accept email and return a generic response to avoid disclosing account existence.
 Step 2: For a matching account, create a cryptographically random token; store only its hash with an expiry.
-Step 3: Send the six-digit code using configured Resend email.
+Step 3: Send the six-digit code using the configured email provider (Gmail SMTP or Resend).
 Step 4: On submission, validate keyed code hash, expiry, password length (8+), and confirmation.
 Step 5: Update the password hash and consume the one-time reset code.
 ```
@@ -303,7 +328,7 @@ Step 5: If diff_days == 0:
             total_days = 1 (minimum charge is 1 day)
         Else:
             total_days = diff_days
-Step 6: driver_fee_per_day = 35.00
+Step 6: Read driver_fee_per_day from the administrator-configured site setting (default 0.00 when unset or invalid).
 Step 7: driver_total = (driver_needed == 1) ? (driver_fee_per_day * total_days) : 0.00
 Step 8: base_total = price_per_day * total_days
 Step 9: grand_total = base_total + driver_total
@@ -342,7 +367,7 @@ Step 10: Return (total_days, grand_total)
 | T-01 | Database Schema Creation (`schema.sql`) | Backend Lead | Complete | Foreign keys validated |
 | T-02 | Seed Data Generation (`database.py`) | Backend Lead | Complete | 8 cars, brands, admin & demo user |
 | T-03 | User Auth & Password Hash (`app.py`) | Fullstack Eng | Complete | PBKDF2/SHA-256 verified |
-| T-04 | 2-Step Forgot Password Flow | Fullstack Eng | Complete | Security question validated |
+| T-04 | Email Verification & Password Recovery | Fullstack Eng | Complete | Single-use, expiring email codes |
 | T-05 | Vehicle Search & Multi-Filters (`cars.html`) | Frontend Eng | Complete | Brand, fuel, price, query verified |
 | T-06 | Booking Price Live Calculator (`main.js`) | Frontend Eng | Complete | JS dynamic day/price calculation |
 | T-07 | Booking Submission & History | Fullstack Eng | Complete | Pending/Confirmed/Cancelled lifecycle |
@@ -352,7 +377,7 @@ Step 10: Return (total_days, grand_total)
 | T-11 | Admin Booking & Remark Control | Fullstack Eng | Complete | Status transitions & remarks |
 | T-12 | Admin Testimonials & Contacts | Fullstack Eng | Complete | Moderate toggle & reply note |
 | T-13 | Admin CMS & Settings Editor | Fullstack Eng | Complete | Live updates reflected on public site |
-| T-14 | Automated Test Suite (`test_app.py`) | QA Lead | Complete | 6/6 tests passing |
+| T-14 | Automated Test Suite (`test_app.py`) | QA Lead | Complete | 20 automated tests |
 
 ---
 
@@ -375,7 +400,7 @@ Step 10: Return (total_days, grand_total)
 | **UT-03** | Duplicate Registration | Existing email address | Warning: account exists | Flash warning displayed | **PASS** |
 | **UT-04** | User Authentication | Correct email + password | User session created | Redirect + Session active | **PASS** |
 | **UT-05** | Invalid Login Attempt | Wrong password | Error: Invalid credentials | Flash danger alert | **PASS** |
-| **UT-06** | Password Reset | Valid one-time emailed code; Resend mocked | Password updated and code consumed | Automated suite pass | **PASS** |
+| **UT-06** | Password Reset | Valid one-time emailed code; provider mocked | Password updated and code consumed | Automated suite pass | **PASS** |
 | **UT-07** | Booking Availability | Conflicting date ranges for a vehicle | Conflicting request rejected | Automated suite pass | **PASS** |
 | **UT-08** | Admin Vehicle Validation | Invalid vehicle fields/rate | Invalid record rejected | Automated suite pass | **PASS** |
 | **UT-09** | Resend API Client | Mocked successful Resend response | Request uses expected API contract | Automated suite pass | **PASS** |
@@ -384,7 +409,7 @@ Step 10: Return (total_days, grand_total)
 | **UT-12** | Admin Inquiry Reply | Reply message to a saved inquiry | Message sent through the configured email adapter and inquiry marked Replied | Automated suite pass | **PASS** |
 | **UT-13** | Booking Approval Conflict | Confirm one of two overlapping pending requests | Confirmation rejected until the conflict is resolved | Automated suite pass | **PASS** |
 | **UT-14** | Live Dashboard Snapshot | Register a customer and add a reservation while admin session remains open | Authenticated dashboard snapshot immediately reports updated counts | Automated suite pass | **PASS** |
-| **UT-15** | Admin Email Password Recovery | Request a reset for `awelethomasjoshua619@gmail.com`, use the code, then sign in by email | Code is sent to the configured admin email; new password works | Automated suite pass | **PASS** |
+| **UT-15** | Admin Email Password Recovery | Request reset, use the code, then sign in by email | Code is sent to the configured admin email; new password works | Automated suite pass | **PASS** |
 
 ---
 
@@ -393,7 +418,7 @@ Step 10: Return (total_days, grand_total)
 - [x] **Complete Source Code:** Cleanly structured, modular Python (Flask) codebase with comprehensive comments and docstrings.
 - [x] **Relational Database:** SQLite schema and optional development seed data. Production mode starts without demo records; live fleet data must be entered by the administrator.
 - [x] **Database Schema & Backup:** Full DDL script (`schema.sql`) and standalone database backup dump (`fastcars_backup.sql`).
-- [x] **Automated Test Suite:** Python test suite (`test_app.py`); 17 automated tests pass in the current local run. This is not exhaustive proof that every production scenario is defect-free.
+- [x] **Automated Test Suite:** Python test suite (`test_app.py`); 20 automated tests passed in the last recorded run. Provider calls are mocked in the suite; live email delivery was separately confirmed during local setup. This is not exhaustive proof that every production scenario is defect-free.
 - [x] **Run Script:** Single command launch via `python run.py`.
 - [x] **Complete Documentation:** Academic project report (`PROJECT_REPORT.md`) containing all 13 required sections.
 - [x] **User Guide:** System overview, local development instructions, and generic Docker deployment runbook (`README.md`). Docker image build and actual hosted deployment remain unverified because Docker is unavailable and no hosting provider has been selected.
