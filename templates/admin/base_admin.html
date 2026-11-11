@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Admin & Main CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20261108-light">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}?v=20261108-light">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}?v=20261111-monochrome">
 </head>
 <body class="admin-body">
     <div class="admin-wrapper">
@@ -78,22 +78,9 @@
                         <i class="fa-solid fa-paper-plane"></i> Subscribers
                     </a>
                 </li>
-                <li class="admin-nav-item">
-                    <a href="{{ url_for('admin_pages') }}" class="admin-nav-link {% if request.endpoint == 'admin_pages' %}active{% endif %}">
-                        <i class="fa-solid fa-file-lines"></i> Page Contents
-                    </a>
-                </li>
-                <li class="admin-nav-item">
-                    <a href="{{ url_for('admin_change_password') }}" class="admin-nav-link {% if request.endpoint == 'admin_change_password' %}active{% endif %}">
-                        <i class="fa-solid fa-key"></i> Change Password
-                    </a>
-                </li>
             </ul>
 
             <div class="admin-sidebar-footer">
-                <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-sm w-100 rounded-pill mb-2 text-white-50" target="_blank">
-                    <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Public Website
-                </a>
                 <form action="{{ url_for('admin_logout') }}" method="POST">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-outline-light btn-sm w-100">
@@ -139,6 +126,11 @@
 
             <!-- Page Body -->
             <main class="admin-main">
+                <div class="mb-3">
+                    <button type="button" class="btn btn-outline-secondary btn-sm text-white-50" onclick="if (history.length > 1) { history.back(); } else { window.location.href='{{ url_for('admin_dashboard') }}'; }">
+                        <i class="fa-solid fa-arrow-left me-1"></i> Back
+                    </button>
+                </div>
                 {% block content %}{% endblock %}
             </main>
         </div>
@@ -146,5 +138,6 @@
 
     <!-- Bootstrap 5 Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/password-toggle.js') }}?v=20261111"></script>
 </body>
 </html>

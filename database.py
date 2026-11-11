@@ -51,12 +51,16 @@ def init_db():
             cur.execute(f"ALTER TABLE vehicles ADD COLUMN {col_name} TEXT")
     # Recovery now uses short-lived email links, so legacy security answers are obsolete.
     conn.execute("UPDATE users SET security_question = '', security_answer = ''")
-    # This seed photo was incorrectly mapped as the Porsche's interior; do not present
-    # another exterior angle as a real interior. Keep the front/side/rear views intact.
-    conn.execute(
-        "UPDATE vehicles SET image_interior = NULL "
-        "WHERE id = 5 AND image_interior = '/static/images/cars/car_5_interior.jpg'"
-    )
+    # Customer feedback is published on submission and cannot be hidden by admin moderation.
+    conn.execute("UPDATE testimonials SET status = 1 WHERE status != 1")
+    # These seed files are exterior shots, not interiors. Do not present them as
+    # cabin photos; the vehicle page will say when a verified interior is unavailable.
+    for vehicle_id in (2, 5, 8):
+        conn.execute(
+            "UPDATE vehicles SET image_interior = NULL "
+            "WHERE id = ? AND image_interior = ?",
+            (vehicle_id, f'/static/images/cars/car_{vehicle_id}_interior.jpg'),
+        )
     # The current front/side/rear source set is catalogued as a 992 Carrera S,
     # photographed in 2021, rather than the seeded 2024 Carrera GTS.
     conn.execute(
@@ -158,26 +162,7 @@ def seed_data(conn):
         for b in brands:
             cursor.execute("INSERT INTO brands (name) VALUES (?)", (b,))
 
-    # 4. Registered Demo User Seed
-    cursor.execute("SELECT COUNT(*) FROM users")
-    if cursor.fetchone()[0] == 0:
-        demo_user_sql = """
-            INSERT INTO users (full_name, email, password_hash, phone, address, city, country, security_question, security_answer)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """
-        cursor.execute(demo_user_sql, (
-            'John Doe',
-            'john@example.com',
-            generate_password_hash('user123'),
-            '+1 (555) 234-5678',
-            '123 Maple Street',
-            'Los Angeles',
-            'United States',
-            'What was the name of your first pet?',
-            'Max'
-        ))
-
-    # 5. Vehicles Seed
+    # 4. Vehicles Seed
     cursor.execute("SELECT COUNT(*) FROM vehicles")
     if cursor.fetchone()[0] == 0:
         # Fetch brand IDs
@@ -215,7 +200,7 @@ def seed_data(conn):
                 'image_url': '/static/images/cars/car_2_front.jpg',
                 'image_side': '/static/images/cars/car_2_side.jpg',
                 'image_rear': '/static/images/cars/car_2_rear.jpg',
-                'image_interior': '/static/images/cars/car_2_interior.jpg',
+                'image_interior': None,
                 'leather_seats': 1, 'gps_navigation': 1, 'bluetooth': 1, 'air_conditioner': 1, 'driver_airbag': 1, 'passenger_airbag': 1, 'antilock_braking_system': 1
             },
             {
@@ -311,7 +296,7 @@ def seed_data(conn):
                 'image_url': '/static/images/cars/car_8_front.jpg',
                 'image_side': '/static/images/cars/car_8_side.jpg',
                 'image_rear': '/static/images/cars/car_8_rear.jpg',
-                'image_interior': '/static/images/cars/car_8_interior.jpg',
+                'image_interior': None,
                 'leather_seats': 0, 'gps_navigation': 1, 'bluetooth': 1, 'air_conditioner': 1, 'driver_airbag': 1, 'passenger_airbag': 1, 'antilock_braking_system': 1
             }
         ]
@@ -333,45 +318,7 @@ def seed_data(conn):
                 v.get('antilock_braking_system', 1)
             ))
 
-    # 6. Testimonials Seed
-    cursor.execute("SELECT COUNT(*) FROM testimonials")
-    if cursor.fetchone()[0] == 0:
-        cursor.execute("SELECT id FROM users LIMIT 1")
-        user_row = cursor.fetchone()
-        user_id = user_row[0] if user_row else 1
-        testimonials = [
-            (user_id, 5, "Seamless rental experience!", "Rented the BMW M4 for a weekend trip to Napa Valley. The car was spotless, pick-up took less than 3 minutes, and customer support was exceptional. Highly recommended!", 0),
-            (user_id, 5, "Unbeatable luxury and service", "FAST CARS lived up to its name. The Mercedes S-Class was like gliding on a cloud. Outstanding service from start to finish.", 0),
-            (user_id, 4, "Smooth and eco-friendly", "Booked the Tesla Model S Plaid for a business convention. Supercharging network was easy and the car performance was out of this world.", 0)
-        ]
-        for t in testimonials:
-            cursor.execute("INSERT INTO testimonials (user_id, rating, title, content, status) VALUES (?, ?, ?, ?, ?)", t)
-
-    # 7. Sample Bookings Seed
-    cursor.execute("SELECT COUNT(*) FROM bookings")
-    if cursor.fetchone()[0] == 0:
-        today = date.today()
-        cursor.execute("""
-            INSERT INTO bookings (
-                booking_number, user_id, vehicle_id, from_date, to_date, total_days,
-                total_price, pickup_location, dropoff_location, driver_needed, message, status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            'FC-2026-8812',
-            1,
-            1,
-            (today + timedelta(days=2)).isoformat(),
-            (today + timedelta(days=5)).isoformat(),
-            3,
-            555.00,
-            'Los Angeles International Airport (LAX)',
-            'Los Angeles International Airport (LAX)',
-            0,
-            'Arriving on flight AA204 at terminal 4.',
-            'Confirmed'
-        ))
-
-    # 8. Sample Contact Query Seed
+    # 5. Sample Contact Query Seed
     cursor.execute("SELECT COUNT(*) FROM contact_queries")
     if cursor.fetchone()[0] == 0:
         cursor.execute("""
@@ -386,7 +333,7 @@ def seed_data(conn):
             'New'
         ))
 
-    # 9. Sample Newsletter Subscriber Seed
+    # 6. Sample Newsletter Subscriber Seed
     cursor.execute("SELECT COUNT(*) FROM subscribers")
     if cursor.fetchone()[0] == 0:
         cursor.execute("INSERT INTO subscribers (email) VALUES (?)", ('vip.driver@example.com',))

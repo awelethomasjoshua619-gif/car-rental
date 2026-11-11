@@ -234,6 +234,15 @@
                             <i class="fa-solid fa-paper-plane me-2"></i> Send Booking Request
                         </button>
                     </form>
+                {% elif current_admin %}
+                    <div class="text-center py-4 bg-dark bg-opacity-50 p-4 rounded-3 border border-secondary border-opacity-25">
+                        <i class="fa-solid fa-shield-halved text-primary fs-1 mb-3"></i>
+                        <h5 class="text-white">Administrator View</h5>
+                        <p class="text-white-50 small mb-4">Customer reservations are submitted through a customer account. Use the admin portal to manage fleet details and booking requests.</p>
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary rounded-pill py-2 fw-semibold">
+                            <i class="fa-solid fa-gauge-high me-1"></i> Return to Admin Dashboard
+                        </a>
+                    </div>
                 {% else %}
                     <!-- Guest Login Prompt -->
                     <div class="text-center py-4 bg-dark bg-opacity-50 p-4 rounded-3 border border-secondary border-opacity-25">

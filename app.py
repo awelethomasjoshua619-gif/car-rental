@@ -1114,7 +1114,7 @@ def testimonials():
         else:
             db.execute("""
                 INSERT INTO testimonials (user_id, rating, title, content, status)
-                VALUES (?, ?, ?, ?, 0)
+                VALUES (?, ?, ?, ?, 1)
             """, (g.user['id'], rating, title, content))
             testimonial_id = db.execute('SELECT last_insert_rowid()').fetchone()[0]
             db.commit()
@@ -1123,13 +1123,13 @@ def testimonials():
             if support_email:
                 try:
                     send_templated_email(
-                        support_email, 'A FAST CARS testimonial needs review', 'New testimonial submitted',
-                        f'{g.user["full_name"]} submitted "{title or "Customer review"}" for moderation (record {testimonial_id}).',
+                        support_email, 'New FAST CARS customer feedback', 'New customer feedback',
+                        f'{g.user["full_name"]} shared feedback: "{title or "Customer review"}" (record {testimonial_id}).',
                     )
                 except Exception:
                     logger.exception('Could not notify staff about testimonial %s', testimonial_id)
                     mail_failed = True
-            flash("Your testimonial was submitted for review." if not mail_failed else "Your testimonial was submitted, but the admin notification could not be emailed.", "success" if not mail_failed else "warning")
+            flash("Your feedback is now published." if not mail_failed else "Your feedback is published, but the admin notification could not be emailed.", "success" if not mail_failed else "warning")
             return redirect(url_for('testimonials'))
 
     # Public approved testimonials
@@ -1161,13 +1161,14 @@ def admin_login():
         return redirect(url_for('admin_dashboard'))
 
     next_url = request.args.get('next')
+    login_failed = False
 
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
         if auth_rate_limited('admin-login', username.lower()):
             flash('Too many sign-in attempts. Please wait and try again.', 'danger')
-            return render_template('admin/login.html', next_url=next_url)
+            return render_template('admin/login.html', next_url=next_url, login_failed=True)
 
         db = get_db()
         admin = db.execute("SELECT * FROM admins WHERE username = ? OR email = ?", (username, username)).fetchone()
@@ -1182,8 +1183,9 @@ def admin_login():
             return redirect(url_for('admin_dashboard'))
         else:
             flash("Invalid administrator credentials.", "danger")
+            login_failed = True
 
-    return render_template('admin/login.html', next_url=next_url)
+    return render_template('admin/login.html', next_url=next_url, login_failed=login_failed)
 
 @app.route('/admin/forgot-password', methods=['GET', 'POST'])
 def admin_forgot_password():
@@ -1683,7 +1685,7 @@ def admin_booking_status(booking_id):
         flash(f"Booking status updated to '{new_status}'." if not email_failed else f"Booking status updated to '{new_status}', but the customer email could not be delivered.", "success" if not email_failed else "warning")
     return redirect(url_for('admin_bookings'))
 
-# Admin Testimonials Management
+# Admin Customer Feedback (read-only)
 @app.route('/admin/testimonials')
 @admin_required
 def admin_testimonials():
@@ -1695,42 +1697,6 @@ def admin_testimonials():
         ORDER BY t.created_at DESC
     """).fetchall()
     return render_template('admin/testimonials.html', testimonials=testimonials)
-
-@app.route('/admin/testimonials/<int:testimonial_id>/toggle', methods=['POST'])
-@admin_required
-def admin_testimonial_toggle(testimonial_id):
-    db = get_db()
-    t = db.execute("""
-        SELECT t.status, t.title, u.email, u.full_name
-        FROM testimonials t JOIN users u ON u.id = t.user_id WHERE t.id = ?
-    """, (testimonial_id,)).fetchone()
-    if t:
-        new_status = 0 if t['status'] == 1 else 1
-        db.execute("UPDATE testimonials SET status = ? WHERE id = ?", (new_status, testimonial_id))
-        db.commit()
-        status_label = "Active (Published)" if new_status == 1 else "Inactive (Hidden)"
-        if new_status == 1:
-            try:
-                send_templated_email(
-                    t['email'], 'Your FAST CARS review was published', 'Review approved',
-                    f'Hi {t["full_name"]}, your testimonial "{t["title"] or "Customer review"}" has been approved and published.',
-                )
-                flash(f"Testimonial marked as {status_label}. The customer was emailed.", "success")
-            except Exception:
-                logger.exception('Could not email testimonial approval for testimonial %s', testimonial_id)
-                flash(f"Testimonial marked as {status_label}, but the customer email could not be delivered.", "warning")
-        else:
-            flash(f"Testimonial marked as {status_label}.", "success")
-    return redirect(url_for('admin_testimonials'))
-
-@app.route('/admin/testimonials/<int:testimonial_id>/delete', methods=['POST'])
-@admin_required
-def admin_testimonial_delete(testimonial_id):
-    db = get_db()
-    db.execute("DELETE FROM testimonials WHERE id = ?", (testimonial_id,))
-    db.commit()
-    flash("Testimonial deleted successfully.", "success")
-    return redirect(url_for('admin_testimonials'))
 
 # Admin Contact Queries Management
 @app.route('/admin/contacts')
@@ -1847,61 +1813,6 @@ def admin_subscriber_delete(sub_id):
     flash("Subscriber removed." if not notification_failed else "Subscriber removed, but the email notice could not be delivered.", "success" if not notification_failed else "warning")
     return redirect(url_for('admin_subscribers'))
 
-# Admin Page Content & Settings Management
-@app.route('/admin/pages', methods=['GET', 'POST'])
-@admin_required
-def admin_pages():
-    db = get_db()
-    if request.method == 'POST':
-        for key in ['company_name', 'company_phone', 'company_email', 'company_address', 'working_hours', 'currency_code', 'chauffeur_fee_per_day', 'about_us', 'terms_conditions', 'privacy_policy']:
-            if key in request.form:
-                val = request.form.get(key, '').strip()
-                if key == 'currency_code':
-                    val = val.upper()[:8]
-                if key == 'chauffeur_fee_per_day' and val:
-                    try:
-                        fee = float(val)
-                        if not math.isfinite(fee) or fee < 0:
-                            raise ValueError
-                        val = f'{fee:.2f}'
-                    except ValueError:
-                        flash('Chauffeur fee must be a valid non-negative amount.', 'danger')
-                        return redirect(url_for('admin_pages'))
-                db.execute("INSERT OR REPLACE INTO site_settings (key, value) VALUES (?, ?)", (key, val))
-        db.commit()
-        flash("Website settings and page content updated successfully.", "success")
-        return redirect(url_for('admin_pages'))
-
-    settings_rows = db.execute("SELECT key, value FROM site_settings").fetchall()
-    settings_dict = {row['key']: row['value'] for row in settings_rows}
-    return render_template('admin/pages.html', settings=settings_dict)
-
-# Admin Change Password
-@app.route('/admin/change-password', methods=['GET', 'POST'])
-@admin_required
-def admin_change_password():
-    if request.method == 'POST':
-        current_password = request.form.get('current_password', '')
-        new_password = request.form.get('new_password', '')
-        confirm_password = request.form.get('confirm_password', '')
-
-        db = get_db()
-        admin = db.execute("SELECT * FROM admins WHERE id = ?", (g.admin['id'],)).fetchone()
-
-        if not check_password_hash(admin['password_hash'], current_password):
-            flash("Current administrator password is incorrect.", "danger")
-        elif len(new_password) < 12:
-            flash("New administrator passwords must be at least 12 characters long.", "danger")
-        elif new_password != confirm_password:
-            flash("New passwords do not match.", "danger")
-        else:
-            new_hash = generate_password_hash(new_password)
-            db.execute("UPDATE admins SET password_hash = ? WHERE id = ?", (new_hash, admin['id']))
-            db.commit()
-            flash("Administrator password updated successfully.", "success")
-            return redirect(url_for('admin_dashboard'))
-
-    return render_template('admin/change_password.html')
 
 # ---------------------------------------------------------
 # Run entrypoint

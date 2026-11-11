@@ -1127,6 +1127,102 @@ body:not(.admin-body) textarea:focus-visible {
     }
 }
 
+/* Monochrome site palette */
+:root {
+    --color-yellow: #fff;
+    --color-yellow-hover: #e6e6e6;
+    --color-light-gray: #f2f2f2;
+    --color-border: #dedede;
+    --color-muted: #666;
+    --color-muted-light: #bdbdbd;
+}
+
+body:not(.admin-body) .text-primary,
+body:not(.admin-body) .text-warning,
+body:not(.admin-body) .text-yellow { color: #171717 !important; }
+
+body:not(.admin-body) .bg-primary,
+body:not(.admin-body) .bg-warning,
+body:not(.admin-body) .bg-yellow { color: #fff !important; background-color: #171717 !important; }
+
+body:not(.admin-body) .btn-primary,
+body:not(.admin-body) .btn-yellow,
+body:not(.admin-body) .btn-warning {
+    color: #fff !important;
+    background: #171717 !important;
+    border-color: #171717 !important;
+}
+
+body:not(.admin-body) .btn-primary:hover,
+body:not(.admin-body) .btn-yellow:hover,
+body:not(.admin-body) .btn-warning:hover {
+    color: #171717 !important;
+    background: #e6e6e6 !important;
+    border-color: #cfcfcf !important;
+}
+
+body:not(.admin-body) .btn-outline-primary,
+body:not(.admin-body) .btn-outline-warning {
+    color: #171717 !important;
+    border-color: #777 !important;
+}
+
+body:not(.admin-body) .btn-outline-primary:hover,
+body:not(.admin-body) .btn-outline-warning:hover {
+    color: #fff !important;
+    background: #171717 !important;
+    border-color: #171717 !important;
+}
+
+body:not(.admin-body) .form-control:focus,
+body:not(.admin-body) .form-select:focus,
+body:not(.admin-body) .form-control-clean:focus,
+body:not(.admin-body) .form-select-clean:focus,
+body:not(.admin-body) .form-control-clean-light:focus {
+    border-color: #555 !important;
+    box-shadow: 0 0 0 3px rgba(0,0,0,.1) !important;
+}
+
+body:not(.admin-body) .car-brand-badge,
+body:not(.admin-body) .car-price-badge {
+    color: #fff !important;
+    background: #171717 !important;
+}
+
+body:not(.admin-body) .testimonial-stars,
+body:not(.admin-body) .text-success,
+body:not(.admin-body) .text-danger,
+body:not(.admin-body) .text-info { color: #555 !important; }
+
+.password-field-wrap { position: relative; width: 100%; }
+.password-field-wrap.input-group { flex-wrap: nowrap; }
+.password-field-wrap .password-visibility-input { padding-right: 3rem !important; }
+.password-visibility-toggle {
+    position: absolute;
+    z-index: 5;
+    top: 50%;
+    right: .55rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    padding: 0;
+    transform: translateY(-50%);
+    color: #555;
+    background: transparent;
+    border: 0;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.password-visibility-toggle:hover,
+.password-visibility-toggle:focus-visible { color: #000; background: rgba(0,0,0,.07); }
+.password-visibility-toggle:focus-visible { outline: 2px solid #555; outline-offset: 1px; }
+.admin-body .password-visibility-toggle,
+.admin-auth-page .password-visibility-toggle { color: #C0C0C0; }
+.admin-body .password-visibility-toggle:hover,
+.admin-auth-page .password-visibility-toggle:hover { color: #fff; background: rgba(255,255,255,.1); }
+
 @media (prefers-reduced-motion: reduce) {
     body:not(.admin-body) *,
     body:not(.admin-body) *::before,
@@ -1136,4 +1232,34 @@ body:not(.admin-body) textarea:focus-visible {
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
     }
+}
+
+/* Consistent breathing room across public pages */
+body:not(.admin-body) .navbar { padding-block: 1rem; }
+body:not(.admin-body) main > .container,
+body:not(.admin-body) main > .container-fluid { padding-top: clamp(.75rem, 1.6vw, 1.25rem); }
+body:not(.admin-body) main > .container > .row,
+body:not(.admin-body) main > .container-fluid > .row { --bs-gutter-y: 1.5rem; }
+body:not(.admin-body) .content-card { padding: clamp(1.4rem, 2.5vw, 2rem) !important; }
+body:not(.admin-body) .content-card > h1,
+body:not(.admin-body) .content-card > h2,
+body:not(.admin-body) .content-card > h3,
+body:not(.admin-body) .content-card > h4,
+body:not(.admin-body) .content-card > h5 { margin-bottom: .8rem; line-height: 1.2; }
+body:not(.admin-body) .content-card form .mb-3 { margin-bottom: 1.15rem !important; }
+body:not(.admin-body) .content-card .form-control,
+body:not(.admin-body) .content-card .form-select { min-height: 46px; }
+body:not(.admin-body) .content-card textarea.form-control { min-height: 112px; }
+body:not(.admin-body) .car-card-body { padding: 1.25rem; }
+body:not(.admin-body) .section-pick-size,
+body:not(.admin-body) .section-our-cars,
+body:not(.admin-body) .section-testimonial,
+body:not(.admin-body) .section-three-steps,
+body:not(.admin-body) .section-contact-updates { scroll-margin-top: 88px; }
+body:not(.admin-body) .footer-bottom-bar { margin-top: 2rem; }
+
+@media (max-width: 767.98px) {
+    body:not(.admin-body) .content-card { padding: 1.25rem !important; }
+    body:not(.admin-body) main > .container,
+    body:not(.admin-body) main > .container-fluid { padding-inline: 1rem; }
 }

@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@700;800;900&display=swap" rel="stylesheet">
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20261108-light">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20261111-monochrome">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -31,6 +31,7 @@
 
             <div class="collapse navbar-collapse" id="mainNav">
                 <!-- Nav Links matching PDF: Our cars | Browse by size | How it works | Contact -->
+                {% if request.endpoint == 'index' %}
                 <ul class="navbar-nav mx-auto mb-2 mb-lg-0 align-items-lg-center gap-lg-4">
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'cars' and not request.args.get('category') %}active{% endif %}" href="{{ url_for('cars') }}">Our cars</a>
@@ -45,6 +46,9 @@
                         <a class="nav-link {% if request.endpoint == 'contact' %}active{% endif %}" href="{{ url_for('contact') }}">Contact</a>
                     </li>
                 </ul>
+                {% else %}
+                <div class="flex-grow-1"></div>
+                {% endif %}
 
                 <!-- Auth Buttons matching PDF: Log in | Register (Yellow) -->
                 <div class="d-flex align-items-center gap-3">
@@ -100,6 +104,11 @@
 
     <!-- Main Body Content -->
     <main>
+        <div class="container pt-3">
+            <button type="button" class="btn btn-outline-secondary btn-sm text-white-50" onclick="if (history.length > 1) { history.back(); } else { window.location.href='{{ url_for('index') }}'; }">
+                <i class="fa-solid fa-arrow-left me-1"></i> Back
+            </button>
+        </div>
         {% block content %}{% endblock %}
     </main>
 
@@ -112,8 +121,7 @@
             <div class="small text-white-50">
                 &copy; Fast Cars. All rights reserved. &bull; 
                 <a href="{{ url_for('terms') }}" class="text-white-50 text-decoration-none ms-2 me-2">Terms</a> &bull; 
-                <a href="{{ url_for('privacy') }}" class="text-white-50 text-decoration-none ms-2 me-2">Privacy</a> &bull; 
-                <a href="{{ url_for('admin_login') }}" class="text-white-50 text-decoration-none ms-2">Admin</a>
+                <a href="{{ url_for('privacy') }}" class="text-white-50 text-decoration-none ms-2 me-2">Privacy</a>
             </div>
         </div>
     </footer>
@@ -122,6 +130,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Main JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}?v=20261108-car-gallery"></script>
+    <script src="{{ url_for('static', filename='js/password-toggle.js') }}?v=20261111"></script>
+    <script src="{{ url_for('static', filename='js/registration-draft.js') }}?v=20261111"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>
