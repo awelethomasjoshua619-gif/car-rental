@@ -98,7 +98,7 @@ python test_app.py
 
 ### Local demonstration scope
 
-The local app uses a development database seeded with sample fleet and demo accounts. Configure a working mail provider for verification codes, password recovery, booking notices, contact inquiries and replies, profile changes, reviews, and newsletter confirmations. Gmail SMTP requires Google 2-Step Verification and a 16-character App Password in `.env`; the host must also allow outbound SMTP connections. The app reports when an email cannot be delivered. If a support reply cannot be delivered, the inquiry is not marked as replied. Reservation requests are stored and managed by staff; online card payments are not enabled. Set the rental currency and any chauffeur fee in Admin → Website Content before publishing the catalog.
+The local app uses a development database seeded with sample fleet and demo accounts. In development, email defaults to `MAIL_PROVIDER=console`: verification and password-recovery codes are printed in the terminal running `python run.py`, so registration works without a mail account or API key. Copy `.env.local.example` to `.env` for the same local settings. To deliver real email, configure Gmail SMTP or Resend in `.env`; Gmail SMTP requires Google 2-Step Verification and a 16-character App Password, and the host must allow outbound SMTP connections. Production requires real email settings and does not allow console delivery. If a support reply cannot be delivered, the inquiry is not marked as replied. Reservation requests are stored and managed by staff; online card payments are not enabled. Set the rental currency and any chauffeur fee in Admin → Website Content before publishing the catalog.
 
 ## Optional Production Deployment with Docker
 

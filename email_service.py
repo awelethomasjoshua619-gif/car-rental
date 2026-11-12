@@ -16,7 +16,14 @@ RESEND_ENDPOINT = "https://api.resend.com/emails"
 
 def send_email(to, subject, html, text=None, *, auth_only=False, support_reply=False):
     """Send application notifications through the configured email provider."""
-    provider = os.environ.get('MAIL_PROVIDER', 'resend').strip().lower()
+    app_env = os.environ.get('APP_ENV', 'development').strip().lower()
+    provider = os.environ.get('MAIL_PROVIDER', 'resend' if app_env == 'production' else 'console').strip().lower()
+    if provider == 'console':
+        if app_env == 'production':
+            raise RuntimeError('Console email delivery is only available outside production.')
+        logger.info('Development email to %s | %s\n%s', to, subject, text or html)
+        return {'provider': 'console', 'accepted': True}
+
     if provider in {'gmail', 'smtp'}:
         username = os.environ.get('SMTP_USERNAME', '').strip()
         password = os.environ.get('SMTP_PASSWORD', '').replace(' ', '').strip()
