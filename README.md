@@ -98,13 +98,13 @@ python test_app.py
 
 ### Local demonstration scope
 
-The local app uses a development database seeded with sample fleet and demo accounts. In development, email defaults to `MAIL_PROVIDER=console`: verification and password-recovery codes are printed in the terminal running `python run.py`, so registration works without a mail account or API key. Copy `.env.local.example` to `.env` for the same local settings. To deliver real email, configure Gmail SMTP or Resend in `.env`; Gmail SMTP requires Google 2-Step Verification and a 16-character App Password, and the host must allow outbound SMTP connections. Production requires real email settings and does not allow console delivery. If a support reply cannot be delivered, the inquiry is not marked as replied. Reservation requests are stored and managed by staff; online card payments are not enabled. Set the rental currency and any chauffeur fee in Admin → Website Content before publishing the catalog.
+The local app uses a development database seeded with sample fleet and demo accounts. Email verification is required for customer sign-in, so configure a real mail provider before registering. Copy `.env.local.example` to `.env`, then replace the Gmail placeholders with the sender account and its Google App Password. The app sends each verification code to the address entered by the registrant. Gmail SMTP requires Google 2-Step Verification, a 16-character App Password, and outbound SMTP access. Keep `.env` private; it is ignored by Git. For a publicly hosted site, configure the provider credentials once in the hosting environment so all visitors can receive verification messages. Production supports Gmail SMTP or Resend and requires real provider settings. If a support reply cannot be delivered, the inquiry is not marked as replied. Reservation requests are stored and managed by staff; online card payments are not enabled. Set the rental currency and any chauffeur fee in Admin → Website Content before publishing the catalog.
 
 ## Optional Production Deployment with Docker
 
 1. Copy .env.example to .env and set a strong SECRET_KEY. Generate one with python -c "import secrets; print(secrets.token_urlsafe(48))".
 2. Set PUBLIC_BASE_URL to the final HTTPS website address.
-3. Configure the production email provider. Resend requires an API key and verified sender address; Gmail SMTP requires an app password and reachable SMTP host. Production startup validates required settings.
+3. Configure the production email provider using host environment variables. Resend requires an API key and verified sender address; Gmail SMTP requires a sender address, username, app password, and reachable SMTP host. Production startup validates the selected provider's required settings.
 4. Start the service with docker compose up --build -d. Docker Compose stores the SQLite database in a named persistent volume and uploaded car images in static/uploads.
 5. Create the first administrator interactively with docker compose exec web flask --app app create-admin.
 6. Sign in, add the real fleet and company details, and confirm the contact, terms, and privacy pages before launch.

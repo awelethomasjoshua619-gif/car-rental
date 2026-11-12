@@ -35,16 +35,24 @@ app = Flask(__name__)
 APP_ENV = os.environ.get('APP_ENV', 'development').lower()
 IS_PRODUCTION = APP_ENV == 'production'
 if IS_PRODUCTION:
-    required_settings = ['SECRET_KEY', 'RESEND_API_KEY', 'MAIL_FROM', 'PUBLIC_BASE_URL']
+    mail_provider = os.environ.get('MAIL_PROVIDER', 'resend').strip().lower()
+    required_settings = ['SECRET_KEY', 'MAIL_FROM', 'PUBLIC_BASE_URL']
+    if mail_provider in {'gmail', 'smtp'}:
+        required_settings.extend(['SMTP_USERNAME', 'SMTP_PASSWORD'])
+    elif mail_provider == 'resend':
+        required_settings.append('RESEND_API_KEY')
+    else:
+        raise RuntimeError('MAIL_PROVIDER must be set to gmail or resend in production.')
     missing_settings = [name for name in required_settings if not os.environ.get(name)]
     if missing_settings:
         raise RuntimeError('Missing required production settings: ' + ', '.join(missing_settings))
     if len(os.environ['SECRET_KEY']) < 32 or os.environ['SECRET_KEY'] == 'generate-a-long-random-value-and-store-it-as-a-secret':
         raise RuntimeError('SECRET_KEY must be a unique random value with at least 32 characters.')
-    if os.environ['RESEND_API_KEY'] == 're_your_resend_api_key':
-        raise RuntimeError('Set a real Resend API key before starting production.')
-    if 'your-verified-domain.example' in os.environ['MAIL_FROM']:
-        raise RuntimeError('Set MAIL_FROM to an address on a domain verified in Resend.')
+    if mail_provider == 'resend':
+        if os.environ['RESEND_API_KEY'] == 're_your_resend_api_key':
+            raise RuntimeError('Set a real Resend API key before starting production.')
+        if 'your-verified-domain.example' in os.environ['MAIL_FROM']:
+            raise RuntimeError('Set MAIL_FROM to an address on a domain verified in Resend.')
     if not os.environ['PUBLIC_BASE_URL'].startswith('https://') or 'your-domain.example' in os.environ['PUBLIC_BASE_URL']:
         raise RuntimeError('PUBLIC_BASE_URL must use HTTPS in production.')
 
@@ -607,16 +615,13 @@ def register():
                        (new_user['id'], hash_email_code('verify-email', email, code), expires_at))
             db.commit()
             try:
-                delivery = send_templated_email(email, 'Verify your FAST CARS email', 'Confirm your email address',
-                                                f'Your verification code is {code}. It expires in 10 minutes.', auth_only=True)
+                send_templated_email(email, 'Verify your FAST CARS email', 'Confirm your email address',
+                                     f'Your verification code is {code}. It expires in 10 minutes.', auth_only=True)
             except Exception:
                 logger.exception('Could not send registration email to user %s', new_user['id'])
                 flash('Your account was created, but the verification email could not be sent. You can request another code below.', 'warning')
             else:
-                if delivery.get('provider') == 'console':
-                    flash('Local demo mode: your verification code is shown in the terminal running FAST CARS.', 'info')
-                else:
-                    flash('We sent a six-digit verification code to your email address.', 'success')
+                flash('We sent a six-digit verification code to your email address.', 'success')
             return redirect(url_for('verify_email', email=email))
 
     return render_template('register.html')
@@ -645,12 +650,9 @@ def verify_email():
                        (user['id'], hash_email_code('verify-email', email, code), expires_at))
             db.commit()
             try:
-                delivery = send_templated_email(email, 'Verify your FAST CARS email', 'Confirm your email address',
-                                                f'Your verification code is {code}. It expires in 10 minutes.', auth_only=True)
-                if delivery.get('provider') == 'console':
-                    flash('Local demo mode: your new verification code is shown in the terminal running FAST CARS.', 'info')
-                else:
-                    flash('A new verification code has been sent.', 'success')
+                send_templated_email(email, 'Verify your FAST CARS email', 'Confirm your email address',
+                                     f'Your verification code is {code}. It expires in 10 minutes.', auth_only=True)
+                flash('A new verification code has been sent.', 'success')
             except Exception:
                 logger.exception('Could not resend email verification code for user %s', user['id'])
                 flash('The verification email could not be sent. Check the local email settings and try again.', 'danger')
@@ -680,16 +682,13 @@ def verify_email():
         session['user_name'] = user['full_name']
         session['user_email'] = user['email']
         try:
-            welcome_delivery = send_templated_email(email, 'Welcome to FAST CARS', 'Your account is ready',
-                                                    f'Hello {user["full_name"]}, your FAST CARS email has been verified.')
+            send_templated_email(email, 'Welcome to FAST CARS', 'Your account is ready',
+                                 f'Hello {user["full_name"]}, your FAST CARS email has been verified.')
         except Exception:
             logger.exception('Could not send welcome email to user %s', user['id'])
             flash('Email verified and your account is ready, but the welcome email could not be delivered.', 'warning')
         else:
-            if welcome_delivery.get('provider') == 'console':
-                flash('Email verified. Your account is ready. Local demo messages are shown in the app terminal.', 'success')
-            else:
-                flash('Email verified. Your account is ready. We emailed a welcome message.', 'success')
+            flash('Email verified. Your account is ready. We emailed a welcome message.', 'success')
         return redirect(url_for('index'))
     if not user:
         flash('Enter the email address used during registration.', 'info')
