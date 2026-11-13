@@ -75,6 +75,10 @@ def init_db():
     conn.execute("UPDATE site_settings SET value = '' WHERE key = 'company_email' AND value = 'support@fastcars.com'")
     conn.execute("UPDATE site_settings SET value = '' WHERE key = 'company_address' AND value LIKE '%Evergreen Terrace%'")
     conn.execute("UPDATE site_settings SET value = '' WHERE key = 'working_hours' AND value LIKE '%8:00 AM - 8:00 PM%'")
+    conn.execute(
+        "DELETE FROM contact_queries WHERE LOWER(name) = 'sarah jenkins' "
+        "AND LOWER(email) = 'sarah.j@example.com'"
+    )
     conn.execute("UPDATE site_settings SET value = ? WHERE key = 'about_us' AND value LIKE '%premier car rental partner%'",
                  ('Browse the available vehicles and send a reservation request for staff review.',))
     conn.execute("UPDATE site_settings SET value = ? WHERE key = 'terms_conditions' AND value LIKE '%200 miles/day%'",
@@ -331,21 +335,6 @@ def seed_data(conn):
                 v.get('air_conditioner', 1), v.get('driver_airbag', 1), v.get('passenger_airbag', 1),
                 v.get('antilock_braking_system', 1)
             ))
-
-    # 5. Sample Contact Query Seed
-    cursor.execute("SELECT COUNT(*) FROM contact_queries")
-    if cursor.fetchone()[0] == 0:
-        cursor.execute("""
-            INSERT INTO contact_queries (name, email, phone, subject, message, status)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (
-            'Sarah Jenkins',
-            'sarah.j@example.com',
-            '+1 (555) 987-6543',
-            'Corporate Fleet Rental Inquiry',
-            'Hello FAST CARS team, we are planning a 3-day executive conference next month and need 4 executive sedans with dedicated drivers. Could you provide a customized corporate package quotation?',
-            'New'
-        ))
 
     # 6. Sample Newsletter Subscriber Seed
     cursor.execute("SELECT COUNT(*) FROM subscribers")
