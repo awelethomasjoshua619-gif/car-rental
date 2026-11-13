@@ -1,6 +1,25 @@
 // FAST CARS - Interactive Frontend Logic
 
 document.addEventListener('DOMContentLoaded', function () {
+    // Restore the full fleet automatically when a submitted keyword is cleared.
+    const vehicleSearchInput = document.getElementById('vehicle-keyword-search');
+    const submittedKeyword = new URLSearchParams(window.location.search).get('q');
+    if (vehicleSearchInput && submittedKeyword && submittedKeyword.trim()) {
+        vehicleSearchInput.addEventListener('input', function () {
+            if (!vehicleSearchInput.value.trim()) {
+                const searchForm = vehicleSearchInput.form;
+                if (searchForm && !searchForm.dataset.submitting) {
+                    searchForm.dataset.submitting = 'true';
+                    if (typeof searchForm.requestSubmit === 'function') {
+                        searchForm.requestSubmit();
+                    } else {
+                        searchForm.submit();
+                    }
+                }
+            }
+        });
+    }
+
     // -------------------------------------------------------------
     // Auto-calculate Total Days & Price on Car Details Booking Form
     // -------------------------------------------------------------
