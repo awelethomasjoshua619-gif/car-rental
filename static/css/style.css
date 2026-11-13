@@ -1030,6 +1030,10 @@ body:not(.admin-body) .ready-title {
     font-size: clamp(2rem, 4vw, 3rem);
 }
 
+body:not(.admin-body) .section-ready-banner .ready-title.text-white:not(.btn):not(.badge):not(.angle-thumb-label) {
+    color: #fff !important;
+}
+
 body:not(.admin-body) .section-contact-updates {
     background: #f5f7fa !important;
     border-top: 1px solid var(--color-border);

@@ -71,6 +71,7 @@ def init_db():
     # Remove fictional business contact details and sample reviews from the
     # public site on existing development databases as well as fresh installs.
     conn.execute("UPDATE site_settings SET value = '' WHERE key = 'company_phone' AND value LIKE '%555-FAST%'")
+    conn.execute("UPDATE site_settings SET value = '' WHERE key = 'company_phone' AND value = '+1 (800) 555-3278'")
     conn.execute("UPDATE site_settings SET value = '' WHERE key = 'company_email' AND value = 'support@fastcars.com'")
     conn.execute("UPDATE site_settings SET value = '' WHERE key = 'company_address' AND value LIKE '%Evergreen Terrace%'")
     conn.execute("UPDATE site_settings SET value = '' WHERE key = 'working_hours' AND value LIKE '%8:00 AM - 8:00 PM%'")
@@ -110,6 +111,19 @@ def init_db():
             raise RuntimeError(
                 'Production database contains a demo password. Use a fresh database and create a production admin.'
             )
+    office_defaults = {
+        'company_address': 'mush surulere 666',
+        'company_phone': '08134018568',
+        'company_email': 'awelethomasjoshua619@gmail.com',
+    }
+    for key, value in office_defaults.items():
+        conn.execute(
+            """INSERT INTO site_settings (key, value) VALUES (?, ?)
+               ON CONFLICT(key) DO UPDATE SET value = excluded.value
+               WHERE TRIM(site_settings.value) = ''""",
+            (key, value),
+        )
+    conn.commit()
     conn.close()
 
 def seed_data(conn):
@@ -133,9 +147,9 @@ def seed_data(conn):
     if cursor.fetchone()[0] == 0:
         default_settings = {
             'company_name': 'FAST CARS Rental & Luxury Fleet',
-            'company_phone': '',
-            'company_email': '',
-            'company_address': '',
+            'company_phone': '08134018568',
+            'company_email': 'awelethomasjoshua619@gmail.com',
+            'company_address': 'mush surulere 666',
             'working_hours': '',
             'currency_code': '',
             'chauffeur_fee_per_day': '',
